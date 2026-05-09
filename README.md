@@ -72,8 +72,6 @@ GFX TOOL PRO — современный инструмент для моддер
 ## Системные требования
 
 * Windows 10 / 11
-* Python build или готовый EXE
-* Поддержка PNG / DDS / GFX изображений
 
 ---
 
@@ -149,8 +147,6 @@ The program will automatically copy and replace the file while keeping the corre
 ## System Requirements
 
 * Windows 10 / 11
-* Python build or compiled EXE
-* PNG / DDS / GFX image support
 
 ---
 
