@@ -339,5 +339,3 @@ GFX TOOL PRO는 Hearts of Iron IV 모더를 위한 고급 GFX 관리 도구입�
 ---
 
 # ❤️ Hearts of Iron IV Modding Community
-
-Удачного моддинга и создания великих проектов! 🚀
