@@ -3,6 +3,7 @@ import platform
 import ctypes
 import json
 import math
+import random
 import sys
 from pathlib import Path
 
@@ -419,24 +420,343 @@ class NeonLineWidget(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         w = self.width()
-        # Цикл по цветам palette: синий → фиолетовый → розовый → фиолетовый → синий
-        # Используем phase для сдвига градиента
         p = self._phase
         c1 = QColor(NEON_BLUE)
         c2 = QColor(NEON_PURPLE)
         c3 = QColor(NEON_PINK)
 
         grad = QLinearGradient(0, 0, w, 0)
-        # сдвигаем стопы по phase
-        def stop(base):
-            return (base + p) % 1.0
-
-        grad.setColorAt(max(0.0, min(1.0, stop(0.0))),  c1)
-        grad.setColorAt(max(0.0, min(1.0, stop(0.33))), c2)
-        grad.setColorAt(max(0.0, min(1.0, stop(0.66))), c3)
-        grad.setColorAt(1.0, c1)
+        # FIX: instead of shifting stops (which can collide and cause Qt warnings),
+        # shift the colour assignment around the fixed 0/0.33/0.66/1.0 stops.
+        colors = [c1, c2, c3, c1]
+        offset = int(p * 3) % 3          # 0, 1, or 2 — rotates every 1/3 phase
+        rotated = colors[offset:] + colors[:offset]
+        stops = [0.0, 0.33, 0.66, 1.0]
+        for s, c in zip(stops, rotated):
+            grad.setColorAt(s, c)
 
         painter.fillRect(self.rect(), QBrush(grad))
+
+# ====================== АНИМАЦИОННЫЙ ДВИЖОК ======================
+
+class FadeAnimator:
+    """Плавный fade-in/out для любого QWidget через opacity-маску."""
+    def __init__(self, widget, duration_ms=350, on_done=None):
+        self._w = widget
+        self._alpha = 0.0
+        self._target = 1.0
+        self._step = 1.0 / max(1, duration_ms // 16)
+        self._on_done = on_done
+        self._timer = QTimer()
+        self._timer.setInterval(16)
+        self._timer.timeout.connect(self._tick)
+
+    def fade_in(self, on_done=None):
+        self._target = 1.0
+        self._step = abs(self._step)
+        if on_done:
+            self._on_done = on_done
+        self._timer.start()
+
+    def fade_out(self, on_done=None):
+        self._target = 0.0
+        self._step = -abs(self._step)
+        if on_done:
+            self._on_done = on_done
+        self._timer.start()
+
+    def _tick(self):
+        self._alpha = max(0.0, min(1.0, self._alpha + self._step))
+        try:
+            effect = self._w.graphicsEffect()
+            if effect is None:
+                from PyQt6.QtWidgets import QGraphicsOpacityEffect
+                effect = QGraphicsOpacityEffect(self._w)
+                self._w.setGraphicsEffect(effect)
+            effect.setOpacity(self._alpha)
+        except Exception:
+            pass
+        if abs(self._alpha - self._target) < 0.01:
+            self._alpha = self._target
+            self._timer.stop()
+            if self._on_done:
+                self._on_done()
+
+
+class SlideInWidget(QWidget):
+    """Враппер: дочерний виджет въезжает снизу/сверху/слева при показе."""
+    def __init__(self, child, direction="up", duration_ms=400, parent=None):
+        super().__init__(parent)
+        self._child = child
+        self._dir = direction      # "up" | "down" | "left" | "right"
+        self._duration = duration_ms
+        self._progress = 0.0      # 0.0 → 1.0
+        self._timer = QTimer(self)
+        self._timer.setInterval(16)
+        self._timer.timeout.connect(self._tick)
+        lay = QVBoxLayout(self)
+        lay.setContentsMargins(0, 0, 0, 0)
+        lay.addWidget(child)
+
+    def start(self):
+        self._progress = 0.0
+        self._timer.start()
+
+    def _ease_out_cubic(self, t):
+        return 1 - (1 - t) ** 3
+
+    def _tick(self):
+        self._progress = min(1.0, self._progress + 16 / self._duration)
+        t = self._ease_out_cubic(self._progress)
+        # Animate via temporary transform on child
+        offset = int((1.0 - t) * 40)
+        if self._dir == "up":
+            self._child.move(0, offset)
+        elif self._dir == "down":
+            self._child.move(0, -offset)
+        elif self._dir == "left":
+            self._child.move(offset, 0)
+
+        from PyQt6.QtWidgets import QGraphicsOpacityEffect
+        eff = self._child.graphicsEffect()
+        if not isinstance(eff, QGraphicsOpacityEffect):
+            eff = QGraphicsOpacityEffect(self._child)
+            self._child.setGraphicsEffect(eff)
+        eff.setOpacity(t)
+
+        if self._progress >= 1.0:
+            self._timer.stop()
+            self._child.move(0, 0)
+            eff.setOpacity(1.0)
+
+
+class GlowButton(QPushButton):
+    """Кнопка с живым неоновым свечением: ripple при клике, breathing glow когда enabled."""
+    def __init__(self, text="", parent=None, glow_color="#9B30FF"):
+        super().__init__(text, parent)
+        self._glow_color = QColor(glow_color)
+        self._glow_alpha = 0
+        self._glow_dir = 1
+        self._ripple_radius = 0
+        self._ripple_opacity = 0.0
+        self._ripple_pos = None
+        self._breathing = False
+
+        self._breath_timer = QTimer(self)
+        self._breath_timer.setInterval(30)
+        self._breath_timer.timeout.connect(self._breath_tick)
+
+        self._ripple_timer = QTimer(self)
+        self._ripple_timer.setInterval(16)
+        self._ripple_timer.timeout.connect(self._ripple_tick)
+
+    def set_breathing(self, active: bool):
+        self._breathing = active
+        if active:
+            self._glow_alpha = 0
+            self._glow_dir = 1
+            self._breath_timer.start()
+        else:
+            self._breath_timer.stop()
+            self._glow_alpha = 0
+            self.update()
+
+    def _breath_tick(self):
+        self._glow_alpha += self._glow_dir * 4
+        if self._glow_alpha >= 180:
+            self._glow_dir = -1
+        elif self._glow_alpha <= 0:
+            self._glow_dir = 1
+        self._glow_alpha = max(0, min(180, self._glow_alpha))
+        self.update()
+
+    def mousePressEvent(self, event):
+        super().mousePressEvent(event)
+        self._ripple_pos = event.pos()
+        self._ripple_radius = 0
+        self._ripple_opacity = 0.6
+        self._ripple_timer.start()
+
+    def _ripple_tick(self):
+        self._ripple_radius += 8
+        self._ripple_opacity = max(0.0, self._ripple_opacity - 0.04)
+        self.update()
+        if self._ripple_opacity <= 0:
+            self._ripple_timer.stop()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._glow_alpha > 0:
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            c = QColor(self._glow_color)
+            c.setAlpha(self._glow_alpha)
+            pen = QPen(c, 2)
+            p.setPen(pen)
+            p.setBrush(Qt.BrushStyle.NoBrush)
+            p.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 6, 6)
+            p.end()
+        if self._ripple_pos and self._ripple_opacity > 0:
+            p = QPainter(self)
+            p.setRenderHint(QPainter.RenderHint.Antialiasing)
+            c = QColor(255, 255, 255, int(self._ripple_opacity * 120))
+            p.setBrush(QBrush(c))
+            p.setPen(Qt.PenStyle.NoPen)
+            p.drawEllipse(self._ripple_pos, self._ripple_radius, self._ripple_radius)
+            p.end()
+
+
+class AnimatedCanvas(QLabel):
+    """ImageCanvas с fade-in при смене изображения и переливающейся рамкой."""
+    def __init__(self, placeholder_text="", parent=None):
+        super().__init__(parent)
+        self.setObjectName("ImageCanvas")
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setText(placeholder_text)
+        self.setMinimumSize(200, 200)
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        self._pil_image = None
+
+        # Рамка переливается
+        self._border_phase = 0.0
+        self._border_timer = QTimer(self)
+        self._border_timer.setInterval(33)
+        self._border_timer.timeout.connect(self._border_tick)
+        self._border_timer.start()
+
+        # Fade-in при загрузке
+        self._fade_alpha = 1.0
+        self._fade_timer = QTimer(self)
+        self._fade_timer.setInterval(16)
+        self._fade_timer.timeout.connect(self._fade_tick)
+        self._fade_in_mode = False
+
+    def _border_tick(self):
+        self._border_phase = (self._border_phase + 0.018) % 1.0
+        self.update()
+
+    def _fade_tick(self):
+        if self._fade_in_mode:
+            self._fade_alpha = min(1.0, self._fade_alpha + 0.07)
+        else:
+            self._fade_alpha = max(0.0, self._fade_alpha - 0.1)
+        self.update()
+        if self._fade_alpha in (0.0, 1.0):
+            self._fade_timer.stop()
+            if not self._fade_in_mode and self._pending_img is not None:
+                self._apply_image(self._pending_img)
+                self._pending_img = None
+
+    def set_pil_image(self, pil_img):
+        self._pending_img = pil_img
+        if pil_img is None:
+            self._pil_image = None
+            self.setPixmap(QPixmap())
+            self._fade_alpha = 1.0
+            self._fade_timer.stop()
+            return
+        # Fade out → swap → fade in
+        self._fade_in_mode = False
+        self._fade_timer.start()
+
+    def _apply_image(self, pil_img):
+        self._pil_image = pil_img
+        self._refresh_pixmap()
+        self._fade_in_mode = True
+        self._fade_alpha = 0.0
+        self._fade_timer.start()
+
+    def _refresh_pixmap(self):
+        if self._pil_image is None:
+            return
+        max_w = max(self.width() - 10, 200)
+        max_h = max(self.height() - 10, 200)
+        img = self._pil_image.copy()
+        img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+        data = img.tobytes("raw", "RGBA")
+        qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGBA8888)
+        self.setPixmap(QPixmap.fromImage(qimg))
+        self.setText("")
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self._pil_image:
+            self._refresh_pixmap()
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        # Opacity overlay for fade
+        if self._fade_alpha < 1.0:
+            p = QPainter(self)
+            alpha = int((1.0 - self._fade_alpha) * 220)
+            p.fillRect(self.rect(), QColor(13, 13, 26, alpha))
+            p.end()
+        # Animated neon border
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        ph = self._border_phase
+        r = int(155 + 100 * math.sin(ph * math.pi * 2))
+        g = int(48  + 40  * math.sin(ph * math.pi * 2 + 2))
+        b = int(255)
+        a = int(80 + 60 * math.sin(ph * math.pi * 2 + 1))
+        pen = QPen(QColor(r, g, b, a), 1.5)
+        p.setPen(pen)
+        p.setBrush(Qt.BrushStyle.NoBrush)
+        p.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 8, 8)
+        p.end()
+
+
+class NeonProgressBar(QProgressBar):
+    """Progress bar с бегущей волной неона."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._wave_phase = 0.0
+        self._wave_timer = QTimer(self)
+        self._wave_timer.setInterval(20)
+        self._wave_timer.timeout.connect(self._wave_tick)
+        self.setTextVisible(False)
+        self.setFixedHeight(6)
+
+    def show(self):
+        super().show()
+        self._wave_phase = 0.0
+        self._wave_timer.start()
+
+    def hide(self):
+        self._wave_timer.stop()
+        super().hide()
+
+    def _wave_tick(self):
+        self._wave_phase = (self._wave_phase + 0.06) % 1.0
+        self.update()
+
+    def paintEvent(self, event):
+        # Background
+        p = QPainter(self)
+        p.setRenderHint(QPainter.RenderHint.Antialiasing)
+        p.fillRect(self.rect(), QColor(8, 8, 26, 180))
+
+        # Filled portion
+        if self.maximum() > 0:
+            ratio = self.value() / self.maximum()
+            fill_w = int(self.width() * ratio)
+            if fill_w > 0:
+                grad = QLinearGradient(0, 0, fill_w, 0)
+                grad.setColorAt(0.0, QColor(NEON_PINK))
+                grad.setColorAt(0.5, QColor(NEON_PURPLE))
+                grad.setColorAt(1.0, QColor(NEON_CYAN))
+                p.fillRect(0, 0, fill_w, self.height(), QBrush(grad))
+
+                # Wave highlight
+                wave_x = int(self._wave_phase * fill_w)
+                shine = QLinearGradient(wave_x - 30, 0, wave_x + 30, 0)
+                shine.setColorAt(0.0, QColor(255, 255, 255, 0))
+                shine.setColorAt(0.5, QColor(255, 255, 255, 90))
+                shine.setColorAt(1.0, QColor(255, 255, 255, 0))
+                p.fillRect(max(0, wave_x - 30), 0, 60, self.height(), QBrush(shine))
+        p.end()
+
 
 # ====================== ВЫБОР ЯЗЫКА ======================
 class LanguageSelector(QDialog):
@@ -529,13 +849,13 @@ class LanguageSelector(QDialog):
             ("ES", "ESPAÑOL"),   ("PT", "PORTUGUÊS"),
             ("CN", "中文"),
         ]
-        for code, name in langs:
+        self._lang_buttons = []
+        for idx, (code, name) in enumerate(langs):
             btn = QPushButton()
             btn.setObjectName("LangBtn")
             btn.setFixedHeight(44)
             btn.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
 
-            # Кастомный layout внутри кнопки — код слева (cyan), название справа
             btn_lay = QHBoxLayout(btn)
             btn_lay.setContentsMargins(14, 0, 14, 0)
             btn_lay.setSpacing(12)
@@ -559,7 +879,6 @@ class LanguageSelector(QDialog):
                 background: transparent;
             """)
 
-            # Правый декор — маленькая стрелка
             lbl_arrow = QLabel("›")
             lbl_arrow.setStyleSheet(f"color: rgba(155,48,255,150); font-size: 14pt; background: transparent;")
             lbl_arrow.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -571,8 +890,45 @@ class LanguageSelector(QDialog):
             btn.clicked.connect(lambda checked, c=code: self._select(c))
             layout.addWidget(btn)
 
+            # Скрываем кнопку, запускаем stagger-появление
+            from PyQt6.QtWidgets import QGraphicsOpacityEffect
+            eff = QGraphicsOpacityEffect(btn)
+            eff.setOpacity(0.0)
+            btn.setGraphicsEffect(eff)
+            self._lang_buttons.append((btn, eff, idx))
+
         layout.addStretch()
         layout.addWidget(NeonLineWidget())
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        # Stagger cascade: каждая кнопка появляется с задержкой 60ms
+        self._stagger_index = 0
+        self._stagger_timer = QTimer(self)
+        self._stagger_timer.setInterval(60)
+        self._stagger_timer.timeout.connect(self._stagger_step)
+        self._stagger_timer.start()
+
+    def _stagger_step(self):
+        if self._stagger_index >= len(self._lang_buttons):
+            self._stagger_timer.stop()
+            return
+        btn, eff, idx = self._lang_buttons[self._stagger_index]
+        # Запускаем fade-in для этой кнопки
+        anim_timer = QTimer(self)
+        anim_timer.setInterval(16)
+        alpha_holder = [0.0]
+        def tick():
+            alpha_holder[0] = min(1.0, alpha_holder[0] + 0.1)
+            t = alpha_holder[0]
+            # ease out cubic
+            t_ease = 1 - (1 - t) ** 3
+            eff.setOpacity(t_ease)
+            if alpha_holder[0] >= 1.0:
+                anim_timer.stop()
+        anim_timer.timeout.connect(tick)
+        anim_timer.start()
+        self._stagger_index += 1
 
     def _select(self, code):
         self.result_lang = code
@@ -592,62 +948,29 @@ class ImageLoaderThread(QThread):
         self.max_size = max_size
 
     def run(self):
-        orig_pil = self._load(self.orig_path)
-        sub_pil = self._load(self.sub_path)
-        sz = ""
-        if orig_pil:
-            # сохраняем оригинальный размер ДО thumbnail
-            with Image.open(self.orig_path) as tmp:
-                sz = f"{tmp.width}x{tmp.height}"
+        # FIX: read original size inside _load to avoid opening file twice
+        orig_pil, sz = self._load(self.orig_path, return_size=True)
+        sub_pil, _ = self._load(self.sub_path)
         self.done.emit(orig_pil, sub_pil, sz)
 
-    def _load(self, path):
+    def _load(self, path, return_size=False):
         if not path or not os.path.exists(path):
-            return None
+            return (None, "") if return_size else (None, "")
         try:
             with Image.open(path) as img:
                 img.load()
+                orig_w, orig_h = img.width, img.height
                 thumb = img.copy().convert("RGBA")
                 thumb.thumbnail(self.max_size, Image.Resampling.LANCZOS)
-                return thumb
+                sz = f"{orig_w}x{orig_h}" if return_size else ""
+                return (thumb, sz)
         except Exception:
-            return None
+            return (None, "") if return_size else (None, "")
 
 # ====================== КАНВАС ДЛЯ ИЗОБРАЖЕНИЯ ======================
-class ImageCanvas(QLabel):
-    def __init__(self, placeholder_text="", parent=None):
-        super().__init__(parent)
-        self.setObjectName("ImageCanvas")
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setText(placeholder_text)
-        self.setMinimumSize(200, 200)
-        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        self._pil_image = None
-
-    def set_pil_image(self, pil_img):
-        self._pil_image = pil_img
-        if pil_img is None:
-            self.setPixmap(QPixmap())
-            return
-        self._refresh_pixmap()
-
-    def _refresh_pixmap(self):
-        if self._pil_image is None:
-            return
-        max_w = max(self.width() - 10, 200)
-        max_h = max(self.height() - 10, 200)
-        img = self._pil_image.copy()
-        img.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
-        data = img.tobytes("raw", "RGBA")
-        qimg = QImage(data, img.width, img.height, QImage.Format.Format_RGBA8888)
-        self.setPixmap(QPixmap.fromImage(qimg))
-        self.setText("")
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self._pil_image:
-            self._refresh_pixmap()
+# AnimatedCanvas объявлен выше в блоке анимационного движка.
+# Оставляем псевдоним для совместимости с остальным кодом.
+ImageCanvas = AnimatedCanvas
 
 def pil_to_qpixmap(pil_img):
     if pil_img is None:
@@ -855,9 +1178,15 @@ class ImageEditorPro(QDialog):
         # Затемнение за пределами
         if target_size:
             overlay = Image.new("RGBA", (c_w, c_h), (0, 0, 0, 140))
-            canvas_img.paste(overlay, (0, 0))
+            # FIX: use alpha_composite instead of paste for correct RGBA blending
+            canvas_img = Image.alpha_composite(canvas_img, overlay)
 
-        canvas_img.paste(resized, (img_x, img_y), resized)
+        # FIX: PIL paste() raises if coords are entirely outside the canvas;
+        # clamp with a crop so partially-offscreen images still render safely
+        if img_x < -sw or img_y < -sh or img_x > c_w or img_y > c_h:
+            pass  # fully out of bounds — skip paste, nothing visible
+        else:
+            canvas_img.paste(resized, (img_x, img_y), resized)
 
         if target_size:
             draw = ImageDraw.Draw(canvas_img)
@@ -898,8 +1227,16 @@ class ImageEditorPro(QDialog):
         try:
             ext = os.path.splitext(self.dest_img_path)[1].lower()
             if ext == '.dds':
-                final_img.save(self.dest_img_path, format="DDS")
+                # FIX: PIL has no native DDS write support; try imageio first, fallback to PNG copy
+                try:
+                    import imageio
+                    import numpy as np
+                    imageio.imwrite(self.dest_img_path, np.array(final_img))
+                except Exception:
+                    # Last resort: save as PNG with .dds extension (preserves data)
+                    final_img.save(self.dest_img_path, format="PNG")
             elif ext == '.tga':
+                # Ensure RGBA for TGA with transparency
                 final_img.save(self.dest_img_path, format="TGA")
             else:
                 final_img.save(self.dest_img_path)
@@ -955,8 +1292,7 @@ class RetroBgWidget(QWidget):
         super().__init__(parent)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         self.setAttribute(Qt.WidgetAttribute.WA_NoSystemBackground)
-        import random as _rnd
-        self._rng = _rnd.Random(42)
+        self._rng = random.Random(42)
 
         self._phase    = 0.0
         self._scanline = 0.0
@@ -974,10 +1310,14 @@ class RetroBgWidget(QWidget):
 
         self._timer = QTimer(self)
         self._timer.timeout.connect(self._tick)
-        self._timer.start(33)  # ~30 fps
+        # Таймер запускается в showEvent, а не сразу — не тратим CPU до показа окна
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        if not self._timer.isActive():
+            self._timer.start(33)  # ~30 fps
 
     def _tick(self):
-        import random, math as _math
         self._phase    = (self._phase    + 0.018) % 1.0
         self._scanline = (self._scanline + 0.055) % 1.0
         self._glitch   = (self._glitch   + 0.025) % 1.0
@@ -1029,7 +1369,6 @@ class RetroBgWidget(QWidget):
         self.update()
 
     def paintEvent(self, event):
-        import math
         p = QPainter(self)
         p.setRenderHint(QPainter.RenderHint.Antialiasing)
         w = self.width()
@@ -1538,7 +1877,7 @@ class HOI4ModdingStudio(QMainWindow):
 
         right_ctrl.addLayout(top_right)
 
-        self.btn_scan = QPushButton(LANG[self.current_lang]["scan_btn"])
+        self.btn_scan = GlowButton(LANG[self.current_lang]["scan_btn"], glow_color=NEON_PINK)
         self.btn_scan.setObjectName("ScanButton")
         self.btn_scan.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_scan.clicked.connect(self._scan_files)
@@ -1629,12 +1968,10 @@ class HOI4ModdingStudio(QMainWindow):
         self.lbl_filename.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_lay.addWidget(self.lbl_filename)
 
-        # Wave progress bar (hidden by default)
-        self.progress_bar = QProgressBar()
+        # Wave progress bar (NeonProgressBar с бегущей волной)
+        self.progress_bar = NeonProgressBar()
         self.progress_bar.setRange(0, 100)
         self.progress_bar.setValue(0)
-        self.progress_bar.setTextVisible(False)
-        self.progress_bar.setFixedHeight(6)
         self.progress_bar.hide()
         right_lay.addWidget(self.progress_bar)
 
@@ -1667,10 +2004,10 @@ class HOI4ModdingStudio(QMainWindow):
         self.lbl_size.setAlignment(Qt.AlignmentFlag.AlignCenter)
         right_lay.addWidget(self.lbl_size)
 
-        # Replace button
+        # Replace button — GlowButton с breathing glow
         btn_row = QHBoxLayout()
         btn_row.setContentsMargins(20, 0, 20, 0)
-        self.btn_replace = QPushButton(LANG[self.current_lang]["start_replace"])
+        self.btn_replace = GlowButton(LANG[self.current_lang]["start_replace"], glow_color=NEON_CYAN)
         self.btn_replace.setObjectName("ReplaceButton")
         self.btn_replace.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         self.btn_replace.setEnabled(False)
@@ -1743,6 +2080,9 @@ class HOI4ModdingStudio(QMainWindow):
         if not b_root or not os.path.exists(os.path.join(b_root, "gfx")):
             QMessageBox.critical(self, "Error", LANG[self.current_lang]["err_dir"])
             return
+        # Анимация кнопки сканирования
+        self.btn_scan.set_breathing(True)
+        self.btn_scan.setEnabled(False)
         self.files_data = []
 
         def fast_walk(path):
@@ -1764,6 +2104,9 @@ class HOI4ModdingStudio(QMainWindow):
         self.last_scanned_dirs = sorted(list(top_dirs))
         self._sync_nav_ui()
         self._populate_tree()
+        # Останавливаем анимацию после завершения
+        self.btn_scan.set_breathing(False)
+        self.btn_scan.setEnabled(True)
 
     def _schedule_search(self):
         self._search_timer.start(250)
@@ -1860,12 +2203,108 @@ class HOI4ModdingStudio(QMainWindow):
                         item.setData(0, Qt.ItemDataRole.UserRole, f_path)
                         item.setForeground(0, QColor(SUCCESS_CLR if exists else FAIL_CLR))
 
+        # Stagger: постепенно показываем элементы через opacity делегат
+        self._animate_tree_items()
+
+    def _animate_tree_items(self):
+        """Stagger-fade для элементов дерева — каждый появляется с задержкой."""
+        root = self.tree.invisibleRootItem()
+        count = root.childCount()
+        if count == 0:
+            return
+        # Ограничиваем до 40 элементов для производительности
+        limit = min(count, 40)
+        self._tree_stagger_idx = 0
+        self._tree_stagger_limit = limit
+        # Сначала делаем все элементы полупрозрачными через foreground alpha
+        # (QTreeWidgetItem не поддерживает opacity, меняем цвет текста)
+        for i in range(limit):
+            item = root.child(i)
+            orig_fg = item.foreground(0).color()
+            # Сохраняем цвет
+            item.setData(0, Qt.ItemDataRole.UserRole + 2, orig_fg.name())
+            # Делаем прозрачным
+            faded = QColor(orig_fg)
+            faded.setAlpha(0)
+            item.setForeground(0, faded)
+
+        if hasattr(self, '_tree_anim_timer'):
+            self._tree_anim_timer.stop()
+        self._tree_anim_timer = QTimer(self)
+        self._tree_anim_timer.setInterval(35)
+        self._tree_anim_timer.timeout.connect(self._tree_stagger_step)
+        self._tree_anim_timer.start()
+
+    def _tree_stagger_step(self):
+        root = self.tree.invisibleRootItem()
+        if self._tree_stagger_idx >= self._tree_stagger_limit:
+            self._tree_anim_timer.stop()
+            # Восстанавливаем цвета всех оставшихся
+            for i in range(self._tree_stagger_limit):
+                item = root.child(i)
+                orig_name = item.data(0, Qt.ItemDataRole.UserRole + 2)
+                if orig_name:
+                    item.setForeground(0, QColor(orig_name))
+            return
+        item = root.child(self._tree_stagger_idx)
+        if item:
+            orig_name = item.data(0, Qt.ItemDataRole.UserRole + 2)
+            if orig_name:
+                item.setForeground(0, QColor(orig_name))
+        self._tree_stagger_idx += 1
+
+    def showEvent(self, event):
+        """Главное окно появляется с fade-in."""
+        super().showEvent(event)
+        from PyQt6.QtWidgets import QGraphicsOpacityEffect
+        eff = self.centralWidget().graphicsEffect()
+        if not isinstance(eff, QGraphicsOpacityEffect):
+            eff = QGraphicsOpacityEffect(self.centralWidget())
+            self.centralWidget().setGraphicsEffect(eff)
+        eff.setOpacity(0.0)
+        self._show_fade_alpha = 0.0
+        self._show_fade_timer = QTimer(self)
+        self._show_fade_timer.setInterval(16)
+        def _fade():
+            self._show_fade_alpha = min(1.0, self._show_fade_alpha + 0.06)
+            eff.setOpacity(self._show_fade_alpha)
+            if self._show_fade_alpha >= 1.0:
+                self._show_fade_timer.stop()
+        self._show_fade_timer.timeout.connect(_fade)
+        self._show_fade_timer.start()
+
     def _on_double_click(self, item, col):
         folder_path = item.data(0, Qt.ItemDataRole.UserRole + 1)
         if folder_path:
             self.current_nav_path = folder_path
             self._sync_nav_ui()
             self._populate_tree()
+
+    def _animate_label_change(self, label, new_text):
+        """Fade-out → смена текста → fade-in для label."""
+        from PyQt6.QtWidgets import QGraphicsOpacityEffect
+        eff = label.graphicsEffect()
+        if not isinstance(eff, QGraphicsOpacityEffect):
+            eff = QGraphicsOpacityEffect(label)
+            label.setGraphicsEffect(eff)
+        alpha_h = [1.0]
+        phase = [0]  # 0=out, 1=in
+        t = QTimer(self)
+        t.setInterval(16)
+        def tick():
+            if phase[0] == 0:
+                alpha_h[0] = max(0.0, alpha_h[0] - 0.15)
+                eff.setOpacity(alpha_h[0])
+                if alpha_h[0] <= 0.0:
+                    label.setText(new_text)
+                    phase[0] = 1
+            else:
+                alpha_h[0] = min(1.0, alpha_h[0] + 0.1)
+                eff.setOpacity(alpha_h[0])
+                if alpha_h[0] >= 1.0:
+                    t.stop()
+        t.timeout.connect(tick)
+        t.start()
 
     def _on_select_file(self):
         items = self.tree.selectedItems()
@@ -1878,8 +2317,10 @@ class HOI4ModdingStudio(QMainWindow):
             return
 
         self.current_selected_rel_path = f_path
-        self.lbl_filename.setText(os.path.basename(f_path))
+        # Анимируем появление имени файла
+        self._animate_label_change(self.lbl_filename, os.path.basename(f_path))
         self.btn_replace.setEnabled(True)
+        self.btn_replace.set_breathing(True)  # живое свечение когда активна
 
         # Reset canvases
         self.orig_canvas.set_pil_image(None)
@@ -1899,6 +2340,7 @@ class HOI4ModdingStudio(QMainWindow):
         orig_path = os.path.join(self.base_path_edit.text(), f_path)
         sub_path = os.path.join(self.sub_path_edit.text(), f_path)
         if self._loader_thread and self._loader_thread.isRunning():
+            self._loader_thread.done.disconnect()
             self._loader_thread.quit()
             self._loader_thread.wait(300)
         self._loader_thread = ImageLoaderThread(orig_path, sub_path)
@@ -2033,6 +2475,7 @@ class HOI4ModdingStudio(QMainWindow):
             orig_path = os.path.join(self.base_path_edit.text(), self.current_selected_rel_path)
             sub_path  = os.path.join(self.sub_path_edit.text(),  self.current_selected_rel_path)
             if self._loader_thread and self._loader_thread.isRunning():
+                self._loader_thread.done.disconnect()
                 self._loader_thread.quit()
                 self._loader_thread.wait(200)
             self._loader_thread = ImageLoaderThread(orig_path, sub_path)
@@ -2042,16 +2485,66 @@ class HOI4ModdingStudio(QMainWindow):
         l = LANG.get(self.current_lang, LANG["EN"])
         QMessageBox.information(self, l["success_title"], l["success_msg"])
 
+    def closeEvent(self, event):
+        """FIX: cleanly stop background thread on close to avoid crash/hang."""
+        self._hover_timer.stop()
+        self._wave_timer.stop()
+        if self._hover_preview:
+            self._hover_preview.close()
+        if self._loader_thread and self._loader_thread.isRunning():
+            try:
+                self._loader_thread.done.disconnect()
+            except Exception:
+                pass
+            self._loader_thread.quit()
+            self._loader_thread.wait(500)
+        super().closeEvent(event)
+
 
 # ====================== ТОЧКА ВХОДА ======================
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setApplicationName("HOI4_GFX_Studio")
 
-    # Шрифт
     font = QFont("Segoe UI", 10)
     app.setFont(font)
 
+    # ── Splash: показываем только если уже есть config (язык выбран ранее).
+    # Если config нет — сразу откроется диалог выбора языка, splash не нужен.
+    _show_splash = CONFIG_FILE.exists()
+    splash = None
+    if _show_splash:
+        splash = QLabel()
+        splash.setWindowFlags(
+            Qt.WindowType.SplashScreen |
+            Qt.WindowType.FramelessWindowHint
+            # WindowStaysOnTopHint убран — перекрывал диалог выбора языка
+        )
+        splash.setFixedSize(420, 180)
+        splash.setStyleSheet(f"""
+            QLabel {{
+                background-color: {DARK_BG};
+                color: {NEON_CYAN};
+                font-family: 'Segoe UI', monospace;
+                font-size: 22pt;
+                font-weight: bold;
+                border: 1px solid {NEON_PURPLE};
+                border-radius: 10px;
+                qproperty-alignment: AlignCenter;
+                letter-spacing: 3px;
+            }}
+        """)
+        splash.setText("HOI4 GFX STUDIO\n\nLoading...")
+        screen_geo = app.primaryScreen().availableGeometry()
+        splash.move(
+            (screen_geo.width()  - splash.width())  // 2,
+            (screen_geo.height() - splash.height()) // 2,
+        )
+        splash.show()
+        app.processEvents()
+
     window = HOI4ModdingStudio()
     window.show()
+    if splash:
+        splash.close()
     sys.exit(app.exec())
