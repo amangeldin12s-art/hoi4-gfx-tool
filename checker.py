@@ -1,5 +1,5 @@
 import os
-import shutil
+# shutil was imported but never used — removed
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk, ImageDraw
@@ -36,7 +36,9 @@ LANG = {
         "zoom_lbl": "Зум: ", "img_missing": "ИЗОБРАЖЕНИЕ ОТСУТСТВУЕТ",
         "addon_mod": "Аддон (Доп. замены):", "addon_view": "АДДОН",
         "mode_sub": "Писать в Сабмод", "mode_addon": "Писать в Аддон",
-        "err_addon": "Ошибка: Сначала выберите папку аддона!"
+        "err_addon": "Ошибка: Сначала выберите папку аддона!",
+        "mode_auto": "АВТО", "mode_manual": "ВРУЧНУЮ",
+        "mode1_hint": "Режим 1 — Мод + Сабмод", "mode2_hint": "Режим 2 — Мод + Сабмод + Аддон"
     },
     "EN": {
         "title": "GFX_TOOL PRO (Explorer Mode)", "base_mod": "Original Mod:", "sub_mod": "Submod (Target Folder):",
@@ -52,15 +54,17 @@ LANG = {
         "zoom_lbl": "Zoom: ", "img_missing": "IMAGE MISSING",
         "addon_mod": "Addon (Extra replacements):", "addon_view": "ADDON",
         "mode_sub": "Write to Submod", "mode_addon": "Write to Addon",
-        "err_addon": "Error: Select addon folder first!"
+        "err_addon": "Error: Select addon folder first!",
+        "mode_auto": "AUTO", "mode_manual": "MANUAL",
+        "mode1_hint": "Mode 1 — Mod + Submod", "mode2_hint": "Mode 2 — Mod + Submod + Addon"
     },
-    "JA": { "title": "GFX_TOOL PRO", "base_mod": "元モッド:", "sub_mod": "サブモッド:", "browse": "参照...", "scan_btn": "解析開始", "file_label": "エクスプローラー:", "search_hint": "検索...", "all_folders": "すべてのフォルダ", "clear_btn": "X", "back_btn": "⬅ 戻る", "theme_btn": "テーマ", "orig_view": "オリジナル", "sub_view": "置換", "not_found": "未検出", "select_file": "選択", "start_replace": "開始", "success_title": "成功", "success_msg": "成功！", "loading": "読み込み...", "size_lbl": "サイズ: ", "err_dir": "エラー！", "btn_fit": "合わせる", "btn_fill": "埋める", "btn_stretch": "伸ばす", "zoom_lbl": "ズーム: ", "img_missing": "画像なし", "addon_mod": "アドオン:", "addon_view": "アドオン", "mode_sub": "サブモッドに書き込む", "mode_addon": "アドオンに書き込む", "err_addon": "エラー！アドオンフォルダを選択してください" },
-    "KO": { "title": "GFX_TOOL PRO", "base_mod": "원본 모드:", "sub_mod": "서브모드:", "browse": "찾아보기...", "scan_btn": "분석 시작", "file_label": "탐색기:", "search_hint": "검색...", "all_folders": "모든 폴더", "clear_btn": "X", "back_btn": "뒤로", "theme_btn": "테마", "orig_view": "원본", "sub_view": "교체", "not_found": "찾을 수 없음", "select_file": "선택", "start_replace": "시작", "success_title": "성공", "success_msg": "성공!", "loading": "로딩...", "size_lbl": "크기: ", "err_dir": "오류!", "btn_fit": "맞춤", "btn_fill": "채우기", "btn_stretch": "늘리기", "zoom_lbl": "확대: ", "img_missing": "이미지 없음", "addon_mod": "애드온:", "addon_view": "애드온", "mode_sub": "서브모드에 쓰기", "mode_addon": "애드온에 쓰기", "err_addon": "오류! 애드온 폴더를 선택하세요" },
-    "DE": { "title": "GFX_TOOL PRO", "base_mod": "Original-Mod:", "sub_mod": "Submod:", "browse": "Durchsuchen...", "scan_btn": "Analyse starten", "file_label": "GFX-Explorer:", "search_hint": "Suchen...", "all_folders": "Alle Ordner", "clear_btn": "X", "back_btn": "⬅ Zurück", "theme_btn": "Thema", "orig_view": "ORIGINAL", "sub_view": "ERSATZ", "not_found": "NICHT GEFUNDEN", "select_file": "Datei wählen", "start_replace": "START", "success_title": "Erfolg", "success_msg": "Erfolgreich!", "loading": "Laden...", "size_lbl": "Größe: ", "err_dir": "Fehler!", "btn_fit": "Anpassen", "btn_fill": "Füllen", "btn_stretch": "Strecken", "zoom_lbl": "Zoom: ", "img_missing": "BILD FEHLT", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "In Submod schreiben", "mode_addon": "In Addon schreiben", "err_addon": "Fehler! Addon-Ordner wählen!" },
-    "FR": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Parcourir...", "scan_btn": "Analyser", "file_label": "Explorateur GFX:", "search_hint": "Rechercher...", "all_folders": "Tous les dossiers", "clear_btn": "X", "back_btn": "⬅ Retour", "theme_btn": "Thème", "orig_view": "ORIGINAL", "sub_view": "REMPLACEMENT", "not_found": "NON TROUVÉ", "select_file": "Choisir", "start_replace": "START", "success_title": "Succès", "success_msg": "Réussi !", "loading": "Chargement...", "size_lbl": "Taille: ", "err_dir": "Erreur !", "btn_fit": "Ajuster", "btn_fill": "Remplir", "btn_stretch": "Étirer", "zoom_lbl": "Zoom: ", "img_missing": "IMAGE MANQUANTE", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Écrire dans Submod", "mode_addon": "Écrire dans Addon", "err_addon": "Erreur ! Choisir dossier addon !" },
-    "ES": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Examinar...", "scan_btn": "Analizar", "file_label": "Explorador GFX:", "search_hint": "Buscar...", "all_folders": "Todas las carpetas", "clear_btn": "X", "back_btn": "⬅ Atrás", "theme_btn": "Tema", "orig_view": "ORIGINAL", "sub_view": "REEMPLAZO", "not_found": "NO ENCONTRADO", "select_file": "Seleccionar", "start_replace": "START", "success_title": "Éxito", "success_msg": "¡Éxito!", "loading": "Cargando...", "size_lbl": "Tamaño: ", "err_dir": "¡Error!", "btn_fit": "Ajustar", "btn_fill": "Llenar", "btn_stretch": "Estirar", "zoom_lbl": "Zoom: ", "img_missing": "IMAGEN FALTA", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Escribir en Submod", "mode_addon": "Escribir en Addon", "err_addon": "¡Error! Seleccione carpeta addon" },
-    "PT": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Procurar...", "scan_btn": "Analisar", "file_label": "Explorador GFX:", "search_hint": "Pesquisar...", "all_folders": "Todas as pastas", "clear_btn": "X", "back_btn": "⬅ Voltar", "theme_btn": "Tema", "orig_view": "SUBSTITUIÇÃO", "not_found": "NÃO ENCONTRADO", "select_file": "Selecionar", "start_replace": "START", "success_title": "Sucesso", "success_msg": "Sucesso!", "loading": "Carregando...", "size_lbl": "Tamanho: ", "err_dir": "Erro!", "btn_fit": "Ajustar", "btn_fill": "Preencher", "btn_stretch": "Esticar", "zoom_lbl": "Zoom: ", "img_missing": "IMAGEM FALTA", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Gravar no Submod", "mode_addon": "Gravar no Addon", "err_addon": "Erro! Selecione pasta addon!" },
-    "CN": { "title": "GFX_TOOL PRO", "base_mod": "原模组:", "sub_mod": "子模组:", "browse": "浏览...", "scan_btn": "分析", "file_label": "GFX 资源管理器:", "search_hint": "搜索...", "all_folders": "所有文件夹", "clear_btn": "X", "back_btn": "⬅ 返回", "theme_btn": "切换主题", "orig_view": "原图", "sub_view": "替换", "not_found": "未找到", "select_file": "选择文件", "start_replace": "开始", "success_title": "成功", "success_msg": "成功！", "loading": "加载中...", "size_lbl": "尺寸: ", "err_dir": "错误！", "btn_fit": "适应", "btn_fill": "填充", "btn_stretch": "拉伸", "zoom_lbl": "缩放: ", "img_missing": "缺少图像", "addon_mod": "附加模组:", "addon_view": "附加", "mode_sub": "写入子模组", "mode_addon": "写入附加", "err_addon": "错误！请选择附加文件夹" }
+    "JA": { "title": "GFX_TOOL PRO", "base_mod": "元モッド:", "sub_mod": "サブモッド:", "browse": "参照...", "scan_btn": "解析開始", "file_label": "エクスプローラー:", "search_hint": "検索...", "all_folders": "すべてのフォルダ", "clear_btn": "X", "back_btn": "⬅ 戻る", "theme_btn": "テーマ", "orig_view": "オリジナル", "sub_view": "置換", "not_found": "未検出", "select_file": "選択", "start_replace": "開始", "success_title": "成功", "success_msg": "成功！", "loading": "読み込み...", "size_lbl": "サイズ: ", "err_dir": "エラー！", "btn_fit": "合わせる", "btn_fill": "埋める", "btn_stretch": "伸ばす", "zoom_lbl": "ズーム: ", "img_missing": "画像なし", "addon_mod": "アドオン:", "addon_view": "アドオン", "mode_sub": "サブモッドに書き込む", "mode_addon": "アドオンに書き込む", "err_addon": "エラー！アドオンフォルダを選択してください", "mode_auto": "自動", "mode_manual": "手動", "mode1_hint": "モード1: Mod+Sub", "mode2_hint": "モード2: Mod+Sub+Addon", "editor_title": "GFX エディター", "editor_save": "適用して保存", "editor_preset": "フォーマット / プリセット:" },
+    "KO": { "title": "GFX_TOOL PRO", "base_mod": "원본 모드:", "sub_mod": "서브모드:", "browse": "찾아보기...", "scan_btn": "분석 시작", "file_label": "탐색기:", "search_hint": "검색...", "all_folders": "모든 폴더", "clear_btn": "X", "back_btn": "뒤로", "theme_btn": "테마", "orig_view": "원본", "sub_view": "교체", "not_found": "찾을 수 없음", "select_file": "선택", "start_replace": "시작", "success_title": "성공", "success_msg": "성공!", "loading": "로딩...", "size_lbl": "크기: ", "err_dir": "오류!", "btn_fit": "맞춤", "btn_fill": "채우기", "btn_stretch": "늘리기", "zoom_lbl": "확대: ", "img_missing": "이미지 없음", "addon_mod": "애드온:", "addon_view": "애드온", "mode_sub": "서브모드에 쓰기", "mode_addon": "애드온에 쓰기", "err_addon": "오류! 애드온 폴더를 선택하세요", "mode_auto": "자동", "mode_manual": "수동", "mode1_hint": "모드1: Mod+Sub", "mode2_hint": "모드2: Mod+Sub+Addon", "editor_title": "GFX 편집기", "editor_save": "적용 및 저장", "editor_preset": "형식 / 프리셋:" },
+    "DE": { "title": "GFX_TOOL PRO", "base_mod": "Original-Mod:", "sub_mod": "Submod:", "browse": "Durchsuchen...", "scan_btn": "Analyse starten", "file_label": "GFX-Explorer:", "search_hint": "Suchen...", "all_folders": "Alle Ordner", "clear_btn": "X", "back_btn": "⬅ Zurück", "theme_btn": "Thema", "orig_view": "ORIGINAL", "sub_view": "ERSATZ", "not_found": "NICHT GEFUNDEN", "select_file": "Datei wählen", "start_replace": "START", "success_title": "Erfolg", "success_msg": "Erfolgreich!", "loading": "Laden...", "size_lbl": "Größe: ", "err_dir": "Fehler!", "btn_fit": "Anpassen", "btn_fill": "Füllen", "btn_stretch": "Strecken", "zoom_lbl": "Zoom: ", "img_missing": "BILD FEHLT", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "In Submod schreiben", "mode_addon": "In Addon schreiben", "err_addon": "Fehler! Addon-Ordner wählen!", "mode_auto": "AUTO", "mode_manual": "MANUELL", "mode1_hint": "Modus 1: Mod+Sub", "mode2_hint": "Modus 2: Mod+Sub+Addon", "editor_title": "GFX-Editor", "editor_save": "Anwenden & Speichern", "editor_preset": "Format / Vorlage:" },
+    "FR": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Parcourir...", "scan_btn": "Analyser", "file_label": "Explorateur GFX:", "search_hint": "Rechercher...", "all_folders": "Tous les dossiers", "clear_btn": "X", "back_btn": "⬅ Retour", "theme_btn": "Thème", "orig_view": "ORIGINAL", "sub_view": "REMPLACEMENT", "not_found": "NON TROUVÉ", "select_file": "Choisir", "start_replace": "START", "success_title": "Succès", "success_msg": "Réussi !", "loading": "Chargement...", "size_lbl": "Taille: ", "err_dir": "Erreur !", "btn_fit": "Ajuster", "btn_fill": "Remplir", "btn_stretch": "Étirer", "zoom_lbl": "Zoom: ", "img_missing": "IMAGE MANQUANTE", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Écrire dans Submod", "mode_addon": "Écrire dans Addon", "err_addon": "Erreur ! Choisir dossier addon !", "mode_auto": "AUTO", "mode_manual": "MANUEL", "mode1_hint": "Mode 1: Mod+Sub", "mode2_hint": "Mode 2: Mod+Sub+Addon", "editor_title": "Éditeur GFX", "editor_save": "Appliquer & Enregistrer", "editor_preset": "Format / Préréglage:" },
+    "ES": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Examinar...", "scan_btn": "Analizar", "file_label": "Explorador GFX:", "search_hint": "Buscar...", "all_folders": "Todas las carpetas", "clear_btn": "X", "back_btn": "⬅ Atrás", "theme_btn": "Tema", "orig_view": "ORIGINAL", "sub_view": "REEMPLAZO", "not_found": "NO ENCONTRADO", "select_file": "Seleccionar", "start_replace": "START", "success_title": "Éxito", "success_msg": "¡Éxito!", "loading": "Cargando...", "size_lbl": "Tamaño: ", "err_dir": "¡Error!", "btn_fit": "Ajustar", "btn_fill": "Llenar", "btn_stretch": "Estirar", "zoom_lbl": "Zoom: ", "img_missing": "IMAGEN FALTA", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Escribir en Submod", "mode_addon": "Escribir en Addon", "err_addon": "¡Error! Seleccione carpeta addon", "mode_auto": "AUTO", "mode_manual": "MANUAL", "mode1_hint": "Modo 1: Mod+Sub", "mode2_hint": "Modo 2: Mod+Sub+Addon", "editor_title": "Editor GFX", "editor_save": "Aplicar y Guardar", "editor_preset": "Formato / Preajuste:" },
+    "PT": { "title": "GFX_TOOL PRO", "base_mod": "Mod Original:", "sub_mod": "Submod:", "browse": "Procurar...", "scan_btn": "Analisar", "file_label": "Explorador GFX:", "search_hint": "Pesquisar...", "all_folders": "Todas as pastas", "clear_btn": "X", "back_btn": "⬅ Voltar", "theme_btn": "Tema", "orig_view": "ORIGINAL", "sub_view": "SUBSTITUIÇÃO", "not_found": "NÃO ENCONTRADO", "select_file": "Selecionar", "start_replace": "START", "success_title": "Sucesso", "success_msg": "Sucesso!", "loading": "Carregando...", "size_lbl": "Tamanho: ", "err_dir": "Erro!", "btn_fit": "Ajustar", "btn_fill": "Preencher", "btn_stretch": "Esticar", "zoom_lbl": "Zoom: ", "img_missing": "IMAGEM FALTA", "addon_mod": "Addon:", "addon_view": "ADDON", "mode_sub": "Gravar no Submod", "mode_addon": "Gravar no Addon", "err_addon": "Erro! Selecione pasta addon!", "mode_auto": "AUTO", "mode_manual": "MANUAL", "mode1_hint": "Modo 1: Mod+Sub", "mode2_hint": "Modo 2: Mod+Sub+Addon", "editor_title": "Editor GFX", "editor_save": "Aplicar e Salvar", "editor_preset": "Formato / Predefinição:" },
+    "CN": { "title": "GFX_TOOL PRO", "base_mod": "原模组:", "sub_mod": "子模组:", "browse": "浏览...", "scan_btn": "分析", "file_label": "GFX 资源管理器:", "search_hint": "搜索...", "all_folders": "所有文件夹", "clear_btn": "X", "back_btn": "⬅ 返回", "theme_btn": "切换主题", "orig_view": "原图", "sub_view": "替换", "not_found": "未找到", "select_file": "选择文件", "start_replace": "开始", "success_title": "成功", "success_msg": "成功！", "loading": "加载中...", "size_lbl": "尺寸: ", "err_dir": "错误！", "btn_fit": "适应", "btn_fill": "填充", "btn_stretch": "拉伸", "zoom_lbl": "缩放: ", "img_missing": "缺少图像", "addon_mod": "附加模组:", "addon_view": "附加", "mode_sub": "写入子模组", "mode_addon": "写入附加", "err_addon": "错误！请选择附加文件夹", "mode_auto": "自动", "mode_manual": "手动", "mode1_hint": "模式1: Mod+Sub", "mode2_hint": "模式2: Mod+Sub+Addon", "editor_title": "GFX 编辑器", "editor_save": "应用并保存", "editor_preset": "格式 / 预设:" }
 }
 
 # --- ТЕМЫ ОФОРМЛЕНИЯ С ПОЛУПРОЗРАЧНОСТЬЮ ---
@@ -91,7 +95,7 @@ HOI4_PRESETS = {
 }
 
 # --- ЭФФЕКТЫ WINDOWS 11 ---
-def apply_windows_11_effect(window, is_dark_mode):
+def apply_windows_11_effect(window, is_dark_mode, alpha=0.96):
     window.update_idletasks()
     if platform.system() == "Windows" and int(platform.release()) >= 10:
         try:
@@ -102,7 +106,7 @@ def apply_windows_11_effect(window, is_dark_mode):
             ctypes.windll.dwmapi.DwmSetWindowAttribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, ctypes.byref(ctypes.c_int(3)), 4)
         except Exception:
             pass
-    window.attributes("-alpha", 0.96)
+    window.attributes("-alpha", alpha)
 
 def bind_hover_effect(widget, default_bg, hover_bg):
     widget.bind("<Enter>", lambda e: widget.config(bg=hover_bg))
@@ -145,41 +149,64 @@ class ImageEditorPro(tk.Toplevel):
     def __init__(self, parent, src_img_path, dest_img_path, base_img_path, lang_dict, theme_colors, callback):
         super().__init__(parent)
         self.title(lang_dict.get("editor_title", "Image Editor"))
-        self.geometry("900x700")
         self.configure(bg=theme_colors["bg"])
-        apply_windows_11_effect(self, theme_colors["bg"] == "#0f0f0f")
-        
-        self.src_img_path = src_img_path
+        self.resizable(True, True)
+        # alpha=1.0 — редактор полностью непрозрачный, не просвечивает главный экран
+        apply_windows_11_effect(self, theme_colors["bg"] == "#0f0f0f", alpha=1.0)
+
+        self.src_img_path  = src_img_path
         self.dest_img_path = dest_img_path
         self.base_img_path = base_img_path
-        self.callback = callback
-        self.theme = theme_colors
-        self.lang = lang_dict
-        
+        self.callback  = callback
+        self.theme     = theme_colors
+        self.lang      = lang_dict
+
         self.target_w, self.target_h = self._get_base_dims()
-        
+
         self.presets = {}
         if self.target_w and self.target_h:
             self.presets["Auto Match Original"] = (self.target_w, self.target_h)
             self.current_preset = "Auto Match Original"
         else:
             self.current_preset = "Leader Portrait (156x207)"
-            
+
         self.presets.update(HOI4_PRESETS)
-        
-        # Исправлено: безопасное открытие файла
+
         with Image.open(src_img_path) as img:
             self.original_img = img.convert("RGBA")
-            
-        self.scale_x = 1.0
-        self.scale_y = 1.0
+
+        self.scale_x  = 1.0
+        self.scale_y  = 1.0
         self.offset_x = 0
         self.offset_y = 0
         self.drag_data = {"x": 0, "y": 0}
-        
+
         self.build_ui()
-        self.do_fill() 
-        self.update_canvas()
+        self._center_on_parent(parent)
+        # do_fill после того как canvas получил реальные размеры
+        self.after(50, self._initial_fit)
+
+    def _center_on_parent(self, parent):
+        self.update_idletasks()
+        w, h = 960, 720
+        self.minsize(700, 500)
+        px = parent.winfo_rootx()
+        py = parent.winfo_rooty()
+        pw = parent.winfo_width()
+        ph = parent.winfo_height()
+        x = max(0, px + (pw - w) // 2)
+        y = max(0, py + (ph - h) // 2)
+        sw = self.winfo_screenwidth()
+        sh = self.winfo_screenheight()
+        x = min(x, sw - w)
+        y = min(y, sh - h)
+        self.geometry(f"{w}x{h}+{x}+{y}")
+
+    def _initial_fit(self):
+        """Вызывается после рендера — canvas уже имеет реальные размеры."""
+        self.do_fill()
+        # Перерисовывать при изменении размера окна
+        self.canvas.bind("<Configure>", lambda e: self.update_canvas())
 
     def _get_base_dims(self):
         try:
@@ -192,47 +219,68 @@ class ImageEditorPro(tk.Toplevel):
         return None, None
 
     def build_ui(self):
-        top_frame = tk.Frame(self, bg=self.theme["panel_bg"], pady=10, padx=10)
-        top_frame.pack(fill=tk.X)
-        
-        tk.Label(top_frame, text=self.lang.get("editor_preset", "Preset:"), bg=self.theme["panel_bg"], fg=self.theme["fg"], font=("Segoe UI", 10, "bold")).pack(side=tk.LEFT, padx=5)
-        
+        # ── Toolbar (2 строки) ──────────────────────────────────
+        toolbar = tk.Frame(self, bg=self.theme["panel_bg"], pady=6, padx=10)
+        toolbar.pack(fill=tk.X)
+
+        # Строка 1: пресет + Fit/Fill/Stretch + зум
+        row1 = tk.Frame(toolbar, bg=self.theme["panel_bg"])
+        row1.pack(fill=tk.X, pady=(0, 4))
+
+        tk.Label(row1, text=self.lang.get("editor_preset", "Preset:"),
+                 bg=self.theme["panel_bg"], fg=self.theme["fg"],
+                 font=("Segoe UI", 9, "bold")).pack(side=tk.LEFT, padx=(0, 6))
+
         self.preset_var = tk.StringVar(value=self.current_preset)
-        self.preset_combo = ttk.Combobox(top_frame, textvariable=self.preset_var, values=list(self.presets.keys()), state="readonly", width=25)
-        self.preset_combo.pack(side=tk.LEFT, padx=5)
+        self.preset_combo = ttk.Combobox(row1, textvariable=self.preset_var,
+                                         values=list(self.presets.keys()),
+                                         state="readonly", width=28)
+        self.preset_combo.pack(side=tk.LEFT, padx=(0, 12))
         self.preset_combo.bind("<<ComboboxSelected>>", self.on_preset_change)
-        
-        controls_frame = tk.Frame(top_frame, bg=self.theme["panel_bg"])
-        controls_frame.pack(side=tk.LEFT, padx=15)
-        
-        btn_opts = {"font": ("Segoe UI", 9, "bold"), "bg": self.theme["btn_bg"], "fg": self.theme["fg"], "relief": "flat", "padx": 10, "pady": 3, "cursor": "hand2"}
-        self.btn_fit = tk.Button(controls_frame, text=self.lang.get("btn_fit", "Fit"), command=self.do_fit, **btn_opts)
-        self.btn_fill = tk.Button(controls_frame, text=self.lang.get("btn_fill", "Fill"), command=self.do_fill, **btn_opts)
-        self.btn_stretch = tk.Button(controls_frame, text=self.lang.get("btn_stretch", "Stretch"), command=self.do_stretch, **btn_opts)
-        
+
+        btn_opts = {"font": ("Segoe UI", 9, "bold"), "bg": self.theme["btn_bg"],
+                    "fg": self.theme["fg"], "relief": "flat",
+                    "padx": 12, "pady": 4, "cursor": "hand2"}
+        self.btn_fit     = tk.Button(row1, text=self.lang.get("btn_fit",     "Fit"),     command=self.do_fit,     **btn_opts)
+        self.btn_fill    = tk.Button(row1, text=self.lang.get("btn_fill",    "Fill"),    command=self.do_fill,    **btn_opts)
+        self.btn_stretch = tk.Button(row1, text=self.lang.get("btn_stretch", "Stretch"), command=self.do_stretch, **btn_opts)
         for btn in [self.btn_fit, self.btn_fill, self.btn_stretch]:
-            btn.pack(side=tk.LEFT, padx=2)
+            btn.pack(side=tk.LEFT, padx=3)
             bind_hover_effect(btn, self.theme["btn_bg"], self.theme["btn_hover"])
 
-        self.zoom_lbl = tk.Label(top_frame, text=self.lang.get("zoom_lbl", "Zoom: ") + "100%", bg=self.theme["panel_bg"], fg=self.theme["accent"], font=("Segoe UI", 10, "bold"))
-        self.zoom_lbl.pack(side=tk.LEFT, padx=15)
-        
-        self.btn_save = tk.Button(top_frame, text=self.lang.get("editor_save", "Apply & Save"), font=("Segoe UI", 10, "bold"),
-                                  bg=self.theme["accent"], fg=self.theme["accent_fg"], relief="flat", padx=15, pady=5, cursor="hand2", command=self.save_image)
-        bind_hover_effect(self.btn_save, self.theme["accent"], self.theme["accent_hover"])
-        self.btn_save.pack(side=tk.RIGHT, padx=5)
+        self.zoom_lbl = tk.Label(row1,
+                                 text=self.lang.get("zoom_lbl", "Zoom: ") + "100%",
+                                 bg=self.theme["panel_bg"], fg=self.theme["accent"],
+                                 font=("Segoe UI", 9, "bold"))
+        self.zoom_lbl.pack(side=tk.LEFT, padx=18)
 
+        # Строка 2: кнопка сохранения во всю ширину
+        row2 = tk.Frame(toolbar, bg=self.theme["panel_bg"])
+        row2.pack(fill=tk.X)
+
+        self.btn_save = tk.Button(
+            row2,
+            text=self.lang.get("editor_save", "Apply & Save"),
+            font=("Segoe UI", 11, "bold"),
+            bg=self.theme["accent"], fg=self.theme["accent_fg"],
+            relief="flat", pady=8, cursor="hand2",
+            command=self.save_image)
+        bind_hover_effect(self.btn_save, self.theme["accent"], self.theme["accent_hover"])
+        self.btn_save.pack(fill=tk.X)
+
+        # ── Canvas ──────────────────────────────────────────────
         self.canvas_frame = tk.Frame(self, bg=self.theme["canvas_bg"])
-        self.canvas_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=15)
-        
-        self.canvas = tk.Canvas(self.canvas_frame, bg=self.theme["canvas_bg"], highlightthickness=0)
+        self.canvas_frame.pack(fill=tk.BOTH, expand=True, padx=12, pady=(6, 12))
+
+        self.canvas = tk.Canvas(self.canvas_frame, bg=self.theme["canvas_bg"],
+                                highlightthickness=0)
         self.canvas.pack(fill=tk.BOTH, expand=True)
-        
+
         self.canvas.bind("<ButtonPress-1>", self.on_drag_start)
-        self.canvas.bind("<B1-Motion>", self.on_drag_motion)
-        self.canvas.bind("<MouseWheel>", self.on_zoom)
-        self.canvas.bind("<Button-4>", self.on_zoom)
-        self.canvas.bind("<Button-5>", self.on_zoom)
+        self.canvas.bind("<B1-Motion>",     self.on_drag_motion)
+        self.canvas.bind("<MouseWheel>",    self.on_zoom)
+        self.canvas.bind("<Button-4>",      self.on_zoom)
+        self.canvas.bind("<Button-5>",      self.on_zoom)
 
     def get_target_dims(self):
         target_size = self.presets.get(self.current_preset)
@@ -270,7 +318,7 @@ class ImageEditorPro(tk.Toplevel):
     def on_preset_change(self, event):
         self.current_preset = self.preset_var.get()
         self.do_fill()
-        self.update_canvas()
+        # do_fill() already calls update_canvas() internally — no duplicate call needed
 
     def on_drag_start(self, event):
         self.drag_data["x"] = event.x
@@ -340,19 +388,28 @@ class ImageEditorPro(tk.Toplevel):
             
             paste_x = (tw - sw) // 2 + self.offset_x
             paste_y = (th - sh) // 2 + self.offset_y
-            final_img.paste(resized, (paste_x, paste_y))
+            final_img.paste(resized, (paste_x, paste_y), resized if resized.mode == 'RGBA' else None)
         else:
             sw, sh = int(self.original_img.width * self.scale_x), int(self.original_img.height * self.scale_y)
             final_img = self.original_img.resize((sw, sh), Image.Resampling.LANCZOS)
 
-        os.makedirs(os.path.dirname(self.dest_img_path), exist_ok=True)
+        dest_dir = os.path.dirname(self.dest_img_path)
+        if dest_dir:
+            os.makedirs(dest_dir, exist_ok=True)
         try:
             ext = os.path.splitext(self.dest_img_path)[1].lower()
             if ext == '.dds':
+                # DDS: Pillow writes uncompressed DDS. Alpha channel preserved.
                 final_img.save(self.dest_img_path, format="DDS")
             elif ext == '.tga':
+                # TGA: supports RGBA natively
                 final_img.save(self.dest_img_path, format="TGA")
+            elif ext in ('.jpg', '.jpeg'):
+                # JPEG does NOT support alpha — must convert RGBA → RGB first,
+                # otherwise Pillow raises "cannot write mode RGBA as JPEG"
+                final_img.convert("RGB").save(self.dest_img_path, format="JPEG", quality=95)
             else:
+                # PNG and others: save as-is (RGBA supported)
                 final_img.save(self.dest_img_path)
             
             self.callback()
@@ -363,25 +420,40 @@ class ImageEditorPro(tk.Toplevel):
 class HOI4ModdingStudio:
     def __init__(self, root):
         self.root = root
-        self.root.withdraw()
-        
+        self.root.withdraw()  # скрыть до готовности
+
         self.image_cache = {}
-        self.tk_cache = {} # Хранилище ссылок на PhotoImage для предотвращения сборки мусора
+        self.tk_cache = {}
         self.current_lang = "RU"
         self.current_theme = "dark"
         self.load_config()
-        
-        self.root.deiconify()
+
         self.root.title(LANG[self.current_lang]["title"])
-        
-        self.window_width = 1280
-        self.window_height = 720
+        self.window_width  = 1340
+        self.window_height = 780
+        self.root.minsize(900, 600)
         self.center_window()
+
+        # Показать ПОСЛЕ позиционирования, вывести поверх
+        self.root.deiconify()
+        self.root.lift()
+        self.root.focus_force()
+        self.root.attributes("-topmost", True)
+        self.root.after(300, lambda: self.root.attributes("-topmost", False))
         
-        self.base_path = tk.StringVar()
-        self.sub_path = tk.StringVar()
+        self.base_path  = tk.StringVar()
+        self.sub_path   = tk.StringVar()
         self.addon_path = tk.StringVar()
-        self.write_mode = tk.StringVar(value="addon")  # "sub" or "addon"
+        self.write_mode = tk.StringVar(value="sub")
+        self._mode_is_manual = False  # False=авто, True=вручную
+
+        # Восстановить пути из config
+        self.base_path.set(getattr(self, '_saved_base',  ''))
+        self.sub_path.set(getattr(self, '_saved_sub',   ''))
+        self.addon_path.set(getattr(self, '_saved_addon', ''))
+        # Автосохранение при изменении
+        for _v in (self.base_path, self.sub_path, self.addon_path):
+            _v.trace_add("write", lambda *_: self.save_config())
         self.files_data = [] 
         self.last_scanned_dirs = []
         self.current_nav_path = "gfx" 
@@ -395,6 +467,9 @@ class HOI4ModdingStudio:
         self._temp_isub_pil = None
         self._temp_iaddon_pil = None
         self._temp_sz = None
+        # Generation counter: each new file selection increments it.
+        # animate_wave checks its own generation; stale loops self-cancel.
+        self._load_gen = 0
         
         self.hover_timer = None
         self.preview_window = None
@@ -410,6 +485,7 @@ class HOI4ModdingStudio:
         self.apply_theme()
         self.apply_neon_effect()
         self._bind_hotkeys()
+        self._auto_detect_mode()
 
     def _bind_hotkeys(self):
         self.root.bind("<F5>",        lambda e: self.scan_files())
@@ -421,19 +497,25 @@ class HOI4ModdingStudio:
         self.root.update_idletasks()
         sw = self.root.winfo_screenwidth()
         sh = self.root.winfo_screenheight()
-        x = (sw // 2) - (self.window_width // 2)
-        y = (sh // 2) - (self.window_height // 2)
-        self.root.geometry(f"{self.window_width}x{self.window_height}+{x}+{y}")
+        w = min(self.window_width,  sw - 40)
+        h = min(self.window_height, sh - 80)
+        x = max(0, (sw - w) // 2)
+        y = max(0, (sh - h) // 2 - 30)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def load_config(self):
+        self._saved_base = self._saved_sub = self._saved_addon = ''
         if CONFIG_FILE.exists():
             try:
                 with open(CONFIG_FILE, "r", encoding="utf-8") as f:
                     data = json.load(f)
                     if data.get("language") in LANG: self.current_lang = data["language"]
-                    if data.get("theme") in THEMES: self.current_theme = data["theme"]
+                    if data.get("theme") in THEMES:  self.current_theme = data["theme"]
+                    self._saved_base  = data.get("base_path",  "")
+                    self._saved_sub   = data.get("sub_path",   "")
+                    self._saved_addon = data.get("addon_path", "")
                     return
-            except: pass
+            except Exception: pass
         selector = LanguageSelector(self.root)
         self.root.wait_window(selector)
         self.current_lang = selector.result
@@ -442,8 +524,14 @@ class HOI4ModdingStudio:
     def save_config(self):
         try:
             with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-                json.dump({"language": self.current_lang, "theme": self.current_theme}, f, ensure_ascii=False, indent=2)
-        except: pass
+                json.dump({
+                    "language":   self.current_lang,
+                    "theme":      self.current_theme,
+                    "base_path":  self.base_path.get()  if hasattr(self, 'base_path')  else "",
+                    "sub_path":   self.sub_path.get()   if hasattr(self, 'sub_path')   else "",
+                    "addon_path": self.addon_path.get() if hasattr(self, 'addon_path') else "",
+                }, f, ensure_ascii=False, indent=2)
+        except Exception: pass
 
     def setup_styles(self):
         self.style = ttk.Style()
@@ -466,6 +554,74 @@ class HOI4ModdingStudio:
             self.neon_line.pack(side=tk.TOP, fill=tk.X, before=self.root_frame.winfo_children()[0])
             
         self.root.after(40, self.apply_neon_effect)
+
+    # ─── УМНЫЙ РЕЖИМ ────────────────────────────────────────────
+    def _auto_detect_mode(self):
+        if self._mode_is_manual: return
+        if self.addon_path.get().strip():
+            self.write_mode.set("addon")
+        else:
+            self.write_mode.set("sub")
+        self._refresh_mode_ui()
+
+    def _on_manual_mode(self):
+        self._mode_is_manual = True
+        self._refresh_mode_ui()
+
+    def _reset_to_auto(self):
+        self._mode_is_manual = False
+        self._auto_detect_mode()
+
+    def _refresh_mode_ui(self):
+        if not hasattr(self, 'lbl_mode_badge'): return
+        l   = LANG.get(self.current_lang, LANG["EN"])
+        thm = THEMES[self.current_theme]
+        is_manual = self._mode_is_manual
+        is_addon  = self.write_mode.get() == "addon"
+        badge_text = f"◆ {l.get('mode_manual','MANUAL')}" if is_manual else f"◆ {l.get('mode_auto','AUTO')}"
+        badge_fg   = thm["fail_fg"] if is_manual else thm["success_fg"]
+        hint_text  = l.get("mode2_hint","") if is_addon else l.get("mode1_hint","")
+        self.lbl_mode_badge.configure(text=badge_text, fg=badge_fg, bg=thm["panel_accent"])
+        self.lbl_mode_hint.configure(text=hint_text, bg=thm["panel_accent"], fg=thm["fg"])
+        self.radio_sub.configure(bg=thm["panel_accent"],   fg=thm["fg"],
+                                 selectcolor=thm["panel_bg"], activebackground=thm["panel_accent"])
+        self.radio_addon.configure(bg=thm["panel_accent"], fg=thm["fg"],
+                                   selectcolor=thm["panel_bg"], activebackground=thm["panel_accent"])
+        if is_manual:
+            self.btn_reset_mode.configure(bg=thm["btn_bg"], fg=thm["accent"])
+            self.btn_reset_mode.pack(side=tk.LEFT)
+        else:
+            self.btn_reset_mode.pack_forget()
+
+    # ─── АСИНХРОННОЕ СКАНИРОВАНИЕ ───────────────────────────────
+    def scan_files(self):
+        b_root = self.base_path.get()
+        if not b_root or not os.path.exists(os.path.join(b_root, "gfx")):
+            messagebox.showerror("Error", LANG[self.current_lang]["err_dir"])
+            return
+        self.btn_scan.config(state=tk.DISABLED, text="⏳ ...")
+        threading.Thread(target=self._bg_scan, args=(b_root,), daemon=True).start()
+
+    def _bg_scan(self, b_root):
+        def fast_walk(path):
+            try:
+                for entry in os.scandir(path):
+                    if entry.is_dir(): yield from fast_walk(entry.path)
+                    elif entry.name.lower().endswith(('.dds','.tga','.png','.jpg')):
+                        yield os.path.relpath(entry.path, b_root)
+            except PermissionError: pass
+        files    = sorted(list(fast_walk(os.path.join(b_root, "gfx"))))
+        # Fix: top_dirs should be the first-level subdirs inside gfx (e.g. "gfx\portraits"),
+        # not just "gfx" for every file.
+        top_dirs = sorted({os.sep.join(f.split(os.sep)[:2]) for f in files if f.count(os.sep) >= 1})
+        self.root.after(0, lambda: self._on_scan_done(files, top_dirs))
+
+    def _on_scan_done(self, files, top_dirs):
+        self.files_data = files
+        self.last_scanned_dirs = top_dirs
+        self.btn_scan.config(state=tk.NORMAL, text=LANG[self.current_lang]["scan_btn"])
+        self.sync_navigation_ui()
+        self.populate_treeview()
 
     def apply_theme(self):
         thm = THEMES[self.current_theme]
@@ -506,14 +662,24 @@ class HOI4ModdingStudio:
         for rb in [self.radio_sub, self.radio_addon]:
             rb.configure(bg=thm["panel_accent"], fg=thm["fg"],
                          selectcolor=thm["panel_bg"], activebackground=thm["panel_accent"])
-        
+        self.btn_reset_mode.configure(bg=thm["btn_bg"], fg=thm["accent"],
+                                      activebackground=thm["btn_hover"])
+
         self.style.configure("Treeview", background=thm["tree_bg"], foreground=thm["tree_fg"], fieldbackground=thm["tree_bg"])
         self.style.map("Treeview", background=[("selected", thm["tree_select"])])
-        self.tree.tag_configure("exists", foreground=thm["success_fg"])
+        self.tree.tag_configure("exists",  foreground=thm["success_fg"])
         self.tree.tag_configure("missing", foreground=thm["fail_fg"])
-        self.tree.tag_configure("addon", foreground=thm["accent"])
-        self.tree.tag_configure("folder", foreground=thm["fg"], font=("Segoe UI", 10, "bold"))
-        self._apply_hotkey_bar_theme()
+        self.tree.tag_configure("addon",   foreground=thm["accent"])
+        self.tree.tag_configure("folder",  foreground=thm["fg"], font=("Segoe UI", 10, "bold"))
+
+        # Горячие клавиши
+        for k_lbl, d_lbl, lang_key in getattr(self, 'hotkey_labels', []):
+            if k_lbl.winfo_exists():
+                k_lbl.configure(bg=thm["btn_bg"], fg=thm["accent"])
+                d_lbl.configure(bg=thm["panel_accent"], fg=thm["fg"],
+                                 text=LANG[self.current_lang].get(lang_key, ""))
+
+        self._refresh_mode_ui()
 
     def build_ui(self):
         self.root_frame = tk.Frame(self.root)
@@ -530,8 +696,18 @@ class HOI4ModdingStudio:
         self.btn_theme = tk.Button(right_group, text=LANG[self.current_lang]["theme_btn"], font=("Segoe UI", 9), relief="flat", padx=12, pady=6, cursor="hand2", command=self.toggle_theme)
         self.btn_theme.pack(side=tk.RIGHT, padx=(10, 0))
 
-        self.lang_combo = ttk.Combobox(right_group, values=list(LANG.keys()), width=6, state="readonly")
-        self.lang_combo.set(self.current_lang)
+        # --- Быстрый переключатель языка ---
+        LANG_FLAGS = {
+            "RU": "🇷🇺", "EN": "🇬🇧", "JA": "🇯🇵", "KO": "🇰🇷",
+            "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "PT": "🇵🇹", "CN": "🇨🇳"
+        }
+        self.lang_combo = ttk.Combobox(
+            right_group,
+            values=[f"{LANG_FLAGS.get(k, '')} {k}" for k in LANG.keys()],
+            width=8, state="readonly"
+        )
+        # Set current value with flag
+        self.lang_combo.set(f"{LANG_FLAGS.get(self.current_lang, '')} {self.current_lang}")
         self.lang_combo.pack(side=tk.RIGHT, padx=10)
         self.lang_combo.bind("<<ComboboxSelected>>", self.change_lang_event)
 
@@ -560,21 +736,41 @@ class HOI4ModdingStudio:
         tk.Entry(grid_frame, textvariable=self.addon_path, width=50, font=("Consolas", 10), relief="flat").grid(row=2, column=1, padx=10)
         ttk.Button(grid_frame, text="...", width=3, command=lambda: self.get_path(self.addon_path)).grid(row=2, column=2)
 
-        # --- Переключатель режима записи ---
+        # --- Умный переключатель режима записи ---
         mode_frame = tk.Frame(grid_frame)
         self.accent_frames.append(mode_frame)
-        mode_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        mode_frame.grid(row=3, column=0, columnspan=3, sticky="w", pady=(8, 0))
+
+        self.lbl_mode_badge = tk.Label(mode_frame, text="◆ АВТО",
+                                       font=("Segoe UI", 8, "bold"), padx=6, pady=2)
+        self.lbl_mode_badge.pack(side=tk.LEFT, padx=(0, 8))
+
+        self.lbl_mode_hint = tk.Label(mode_frame, text="",
+                                      font=("Segoe UI", 8, "italic"))
+        self.lbl_mode_hint.pack(side=tk.LEFT, padx=(0, 12))
+
         self.radio_sub = tk.Radiobutton(mode_frame, text=LANG[self.current_lang]["mode_sub"],
                                         variable=self.write_mode, value="sub",
-                                        font=("Segoe UI", 8), cursor="hand2", relief="flat")
+                                        font=("Segoe UI", 8), cursor="hand2", relief="flat",
+                                        command=self._on_manual_mode)
         self.radio_addon = tk.Radiobutton(mode_frame, text=LANG[self.current_lang]["mode_addon"],
                                           variable=self.write_mode, value="addon",
-                                          font=("Segoe UI", 8, "bold"), cursor="hand2", relief="flat")
-        self.radio_sub.pack(side=tk.LEFT, padx=(0, 15))
-        self.radio_addon.pack(side=tk.LEFT)
+                                          font=("Segoe UI", 8, "bold"), cursor="hand2", relief="flat",
+                                          command=self._on_manual_mode)
+        self.radio_sub.pack(side=tk.LEFT, padx=(0, 4))
+        self.radio_addon.pack(side=tk.LEFT, padx=(0, 10))
+
+        self.btn_reset_mode = tk.Button(mode_frame, text="↺",
+                                        font=("Segoe UI", 9, "bold"), relief="flat",
+                                        padx=6, pady=1, cursor="hand2",
+                                        command=self._reset_to_auto)
+        # кнопка ↺ показывается только в ручном режиме — pack/forget в _refresh_mode_ui
+
+        # Трейс: авто-переключение при изменении addon_path
+        self.addon_path.trace_add("write", lambda *_: self._auto_detect_mode())
 
         main_pane = tk.PanedWindow(self.root_frame, orient=tk.HORIZONTAL, bd=0, sashwidth=6)
-        main_pane.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        main_pane.pack(fill=tk.BOTH, expand=True, padx=10, pady=(5, 0))
 
         left_col = tk.Frame(main_pane, padx=15, pady=15)
         self.themed_frames.append(left_col)
@@ -658,36 +854,16 @@ class HOI4ModdingStudio:
         main_pane.add(right_col)
 
         # --- Панель горячих клавиш внизу ---
-        hotkey_bar = tk.Frame(self.root_frame, pady=6, padx=12)
+        hotkey_bar = tk.Frame(self.root_frame, pady=5, padx=12)
         self.accent_frames.append(hotkey_bar)
         hotkey_bar.pack(side=tk.BOTTOM, fill=tk.X)
-
-        hotkeys = [
-            ("F5", "scan_btn"),
-            ("Ctrl+F", "search_hint"),
-            ("Esc", "clear_btn"),
-            ("⌫", "back_btn"),
-        ]
         self.hotkey_labels = []
-        for key, lang_key in hotkeys:
-            key_lbl = tk.Label(hotkey_bar, text=f" {key} ", font=("Consolas", 9, "bold"),
-                               relief="solid", bd=1, padx=4, pady=2)
-            key_lbl.pack(side=tk.LEFT, padx=(0, 3))
-            self.themed_frames  # не добавляем — стилизуем отдельно
-            desc_lbl = tk.Label(hotkey_bar, text=LANG[self.current_lang].get(lang_key, key_lbl),
-                                font=("Segoe UI", 9), padx=2)
-            desc_lbl.pack(side=tk.LEFT, padx=(0, 18))
-            self.hotkey_labels.append((key_lbl, desc_lbl, lang_key))
-
-    def _apply_hotkey_bar_theme(self):
-        thm = THEMES[self.current_theme]
-        for key_lbl, desc_lbl, lang_key in getattr(self, 'hotkey_labels', []):
-            if key_lbl.winfo_exists():
-                key_lbl.configure(bg=thm["btn_bg"], fg=thm["accent"],
-                                  highlightbackground=thm["border"])
-            if desc_lbl.winfo_exists():
-                desc_lbl.configure(bg=thm["panel_accent"], fg=thm["fg"],
-                                   text=LANG[self.current_lang].get(lang_key, ""))
+        for key, lang_key in [("F5","scan_btn"),("Ctrl+F","search_hint"),("Esc","clear_btn"),("⌫","back_btn")]:
+            k = tk.Label(hotkey_bar, text=f" {key} ", font=("Consolas", 9, "bold"), relief="solid", bd=1, padx=4, pady=1)
+            k.pack(side=tk.LEFT, padx=(0, 3))
+            d = tk.Label(hotkey_bar, font=("Segoe UI", 9), padx=2)
+            d.pack(side=tk.LEFT, padx=(0, 16))
+            self.hotkey_labels.append((k, d, lang_key))
 
     def on_tree_hover(self, event):
         item_id = self.tree.identify_row(event.y)
@@ -747,9 +923,17 @@ class HOI4ModdingStudio:
         self.populate_treeview()
 
     def change_lang_event(self, event):
-        self.current_lang = self.lang_combo.get()
+        # Parse "🇷🇺 RU" → "RU"
+        selected = self.lang_combo.get()
+        self.current_lang = selected.split()[-1]
         self.save_config()
         self.update_ui_lang()
+        # Sync combobox display value in case of re-render
+        LANG_FLAGS = {
+            "RU": "🇷🇺", "EN": "🇬🇧", "JA": "🇯🇵", "KO": "🇰🇷",
+            "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "PT": "🇵🇹", "CN": "🇨🇳"
+        }
+        self.lang_combo.set(f"{LANG_FLAGS.get(self.current_lang, '')} {self.current_lang}")
 
     def update_ui_lang(self):
         l = LANG.get(self.current_lang, LANG["EN"])
@@ -770,7 +954,10 @@ class HOI4ModdingStudio:
         self.sub_canvas.config(text=l["sub_view"])
         self.addon_canvas.config(text=l["addon_view"])
         self.sync_navigation_ui()
-        self._apply_hotkey_bar_theme()
+        self._refresh_mode_ui()
+        for k_lbl, d_lbl, lang_key in getattr(self, 'hotkey_labels', []):
+            if d_lbl.winfo_exists():
+                d_lbl.config(text=l.get(lang_key, ""))
 
     def sync_navigation_ui(self):
         l = LANG.get(self.current_lang, LANG["EN"])
@@ -810,28 +997,6 @@ class HOI4ModdingStudio:
     def get_path(self, var):
         p = filedialog.askdirectory()
         if p: var.set(os.path.normpath(p))
-
-    def scan_files(self):
-        b_root = self.base_path.get()
-        if not b_root or not os.path.exists(os.path.join(b_root, "gfx")):
-            messagebox.showerror("Error", LANG[self.current_lang]["err_dir"])
-            return
-        self.files_data = []
-        def fast_walk(path):
-            try:
-                for entry in os.scandir(path):
-                    if entry.is_dir(): yield from fast_walk(entry.path)
-                    elif entry.name.lower().endswith(('.dds', '.tga', '.png', '.jpg')):
-                        yield os.path.relpath(entry.path, b_root)
-            except PermissionError: pass
-        self.files_data = sorted(list(fast_walk(os.path.join(b_root, "gfx"))))
-        top_dirs = set()
-        for f in self.files_data:
-            parts = f.split(os.sep)
-            if len(parts) > 1: top_dirs.add(parts[0])
-        self.last_scanned_dirs = sorted(list(top_dirs))
-        self.sync_navigation_ui()
-        self.populate_treeview()
 
     def schedule_search(self):
         if self._search_timer: self.root.after_cancel(self._search_timer)
@@ -911,20 +1076,30 @@ class HOI4ModdingStudio:
         
         self.load_progress = 0
         self.wave_tick = 0
+        self._load_gen += 1          # cancel any running animation loop
+        my_gen = self._load_gen
         self._animating_wave = True
-        self.animate_wave()
+        self.animate_wave(my_gen)
 
-        threading.Thread(target=self._bg_load, daemon=True).start()
+        threading.Thread(target=self._bg_load, args=(my_gen,), daemon=True).start()
 
-    def animate_wave(self):
-        if not self._animating_wave: return
+    def animate_wave(self, my_gen=None):
+        # Stale loop from a previous file selection: self-cancel
+        if my_gen is None or my_gen != self._load_gen:
+            return
+        if not self._animating_wave:
+            return
         
         self.load_progress += 4  
         self.wave_tick += 0.5
         
         if self.load_progress >= 100:
+            # Wait for background thread of THIS generation to finish
+            if getattr(self, '_bg_load_ready_gen', -1) != my_gen:
+                self.root.after(30, lambda: self.animate_wave(my_gen))
+                return
             self._animating_wave = False
-            # Передаем объекты PIL в метод главного потока
+            # PhotoImage conversion happens strictly on the main thread
             self.root.after(50, lambda: self.update_view(self._temp_io_pil, self._temp_isub_pil, self._temp_iaddon_pil, self._temp_sz))
             return
             
@@ -953,37 +1128,43 @@ class HOI4ModdingStudio:
         self.sub_canvas.config(image=self._wave_img, text="")
         self.addon_canvas.config(image=self._wave_img, text="")
         
-        self.root.after(30, self.animate_wave)
+        self.root.after(30, lambda: self.animate_wave(my_gen))
 
-    def _bg_load(self):
-        # Этот метод работает в фоновом потоке, здесь создаем только PIL объекты
-        p_orig = os.path.join(self.base_path.get(), self.current_selected_rel_path)
-        p_sub = os.path.join(self.sub_path.get(), self.current_selected_rel_path)
-        p_addon = os.path.join(self.addon_path.get(), self.current_selected_rel_path) if self.addon_path.get() else ""
-        self._temp_io_pil, self._temp_sz = self.get_cached_image(p_orig, (400, 400))
-        self._temp_isub_pil, _ = self.get_cached_image(p_sub, (400, 400))
-        self._temp_iaddon_pil, _ = self.get_cached_image(p_addon, (400, 400)) if p_addon else (None, None)
+    def _bg_load(self, my_gen):
+        selected_at_start = self.current_selected_rel_path
+        p_orig  = os.path.join(self.base_path.get(), selected_at_start)
+        p_sub   = os.path.join(self.sub_path.get(),  selected_at_start)
+        p_addon = os.path.join(self.addon_path.get(), selected_at_start) if self.addon_path.get() else ""
+        io_pil,    sz = self.get_cached_image(p_orig,  (400, 400))
+        isub_pil,   _ = self.get_cached_image(p_sub,   (400, 400))
+        iaddon_pil, _ = self.get_cached_image(p_addon, (400, 400)) if p_addon else (None, None)
+        # If user switched file while loading, discard silently
+        if selected_at_start != self.current_selected_rel_path: return
+        if my_gen != self._load_gen: return
+        self._temp_io_pil     = io_pil
+        self._temp_isub_pil   = isub_pil
+        self._temp_iaddon_pil = iaddon_pil
+        self._temp_sz         = sz
+        self._bg_load_ready_gen = my_gen  # Signal ready for this generation
 
     def get_cached_image(self, path, max_size):
         if not os.path.exists(path): return None, None
         mtime = os.path.getmtime(path)
-        
-        # Исправлено: Возвращаем объект PIL Image, а не ImageTk.PhotoImage
         if path in self.image_cache:
             cached_mtime, img_pil, sz = self.image_cache[path]
             if cached_mtime == mtime: return img_pil, sz
-            
         try:
-            # Безопасное открытие с закрытием файла после загрузки
             with Image.open(path) as img:
                 img.load()
-                w, h = img.size
+                w, h  = img.size
                 thumb = img.copy()
                 thumb.thumbnail(max_size, Image.Resampling.LANCZOS)
-                
+                # Лимит кэша 200 записей
+                if len(self.image_cache) >= 200:
+                    del self.image_cache[next(iter(self.image_cache))]
                 self.image_cache[path] = (mtime, thumb, f"{w}x{h}")
                 return thumb, f"{w}x{h}"
-        except Exception: 
+        except Exception:
             return None, None
 
     def update_view(self, io_pil, isub_pil, iaddon_pil, sz):
@@ -1039,9 +1220,11 @@ class HOI4ModdingStudio:
         
         self.load_progress = 0
         self.wave_tick = 0
+        self._load_gen += 1
+        my_gen = self._load_gen
         self._animating_wave = True
-        self.animate_wave()
-        threading.Thread(target=self._bg_load, daemon=True).start()
+        self.animate_wave(my_gen)
+        threading.Thread(target=self._bg_load, args=(my_gen,), daemon=True).start()
         
         messagebox.showinfo(LANG[self.current_lang]["success_title"], LANG[self.current_lang]["success_msg"])
 
