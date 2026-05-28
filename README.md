@@ -55,20 +55,6 @@ GFX TOOL PRO — современный инструмент для моддер
 
 ---
 
-## Поддерживаемые языки
-
-* Русский
-* English
-* Deutsch
-* Français
-* Español
-* Português
-* 日本語
-* 한국어
-* 中文
-
----
-
 ## Системные требования
 
 * Windows 10 / 11
@@ -127,20 +113,6 @@ The application compares original mod assets with your submod, allows instant fi
 10. Click `Apply & Save`
 
 The program will automatically copy and replace the file while keeping the correct mod structure.
-
----
-
-## Supported Languages
-
-* Russian
-* English
-* German
-* French
-* Spanish
-* Portuguese
-* Japanese
-* Korean
-* Chinese
 
 ---
 
