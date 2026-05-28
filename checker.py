@@ -1,5 +1,5 @@
 import os
-# shutil was imported but never used — removed
+import struct
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from PIL import Image, ImageTk, ImageDraw
@@ -11,6 +11,83 @@ import math
 from pathlib import Path
 import sys
 import colorsys
+import numpy as np
+
+# ══════════════════════════════════════════════════════════════════
+#  Встроенный DDS-компрессор (BC1/DXT1 и BC3/DXT5)
+#  Работает без texconv и любых внешних утилит.
+#  numpy-векторизация: ~30 мс на портрет 156x207.
+# ══════════════════════════════════════════════════════════════════
+_DDSD_CAPS=0x1; _DDSD_HEIGHT=0x2; _DDSD_WIDTH=0x4
+_DDSD_LINEARSIZE=0x80000; _DDSD_PIXELFORMAT=0x1000
+_DDSCAPS_TEXTURE=0x1000;  _DDPF_FOURCC=0x4
+
+def _dds_rgb565_enc(rgb):
+    r=(rgb[:,0].astype(np.uint16)>>3)&0x1F
+    g=(rgb[:,1].astype(np.uint16)>>2)&0x3F
+    b=(rgb[:,2].astype(np.uint16)>>3)&0x1F
+    return (r<<11)|(g<<5)|b
+
+def _dds_rgb565_dec(v):
+    r=((v>>11)&0x1F).astype(np.float32)*(255./31)
+    g=((v>>5) &0x3F).astype(np.float32)*(255./63)
+    b=(v       &0x1F).astype(np.float32)*(255./31)
+    return np.stack([r,g,b],axis=-1)
+
+def _bc1(rgb):
+    """BC1/DXT1 цвет: (N,16,3) uint8 -> (N,8) uint8"""
+    N=len(rgb); f=rgb.astype(np.float32)
+    c0=_dds_rgb565_enc(f.max(1).clip(0,255).astype(np.uint8))
+    c1=_dds_rgb565_enc(f.min(1).clip(0,255).astype(np.uint8))
+    sw=c0<c1; c0[sw],c1[sw]=c1[sw].copy(),c0[sw].copy()
+    c0f=_dds_rgb565_dec(c0); c1f=_dds_rgb565_dec(c1)
+    pal=np.stack([c0f,c1f,(2*c0f+c1f)/3,(c0f+2*c1f)/3],axis=1)
+    diff=f[:,:,np.newaxis,:]-pal[:,np.newaxis,:,:]
+    idx=(diff**2).sum(-1).argmin(-1).astype(np.uint32)
+    sh=np.arange(16,dtype=np.uint32)*2; ip=(idx<<sh).sum(1)
+    o=np.zeros((N,8),dtype=np.uint8)
+    o[:,0]=c0&0xFF;o[:,1]=(c0>>8)&0xFF;o[:,2]=c1&0xFF;o[:,3]=(c1>>8)&0xFF
+    o[:,4]=ip&0xFF;o[:,5]=(ip>>8)&0xFF;o[:,6]=(ip>>16)&0xFF;o[:,7]=(ip>>24)&0xFF
+    return o
+
+def _bc3a(a):
+    """BC3/DXT5 альфа: (N,16) uint8 -> (N,8) uint8"""
+    N=len(a); a0=a.max(1).astype(np.float32); a1=a.min(1).astype(np.float32)
+    pal=np.stack([a0,a1,(6*a0+a1)/7,(5*a0+2*a1)/7,
+                  (4*a0+3*a1)/7,(3*a0+4*a1)/7,(2*a0+5*a1)/7,(a0+6*a1)/7],axis=1)
+    idx=(( a.astype(np.float32)[:,:,np.newaxis]-pal[:,np.newaxis,:])**2).argmin(-1).astype(np.uint64)
+    pk=np.zeros(N,dtype=np.uint64)
+    for i in range(16): pk|=(idx[:,i]&np.uint64(7))<<np.uint64(i*3)
+    o=np.zeros((N,8),dtype=np.uint8)
+    o[:,0]=a0.astype(np.uint8); o[:,1]=a1.astype(np.uint8)
+    for b in range(6): o[:,2+b]=(pk>>np.uint64(b*8))&np.uint64(0xFF)
+    return o
+
+def compress_to_dds(img):
+    """
+    PIL Image -> DDS bytes (BC3/DXT5 или BC1/DXT1) без внешних утилит.
+    Автовыбор: есть прозрачность -> DXT5, нет -> DXT1 (вдвое легче).
+    """
+    rgba=img.convert("RGBA"); w,h=rgba.size
+    pw=(-w)%4; ph=(-h)%4
+    if pw or ph:
+        p=Image.new("RGBA",(w+pw,h+ph),(0,0,0,0)); p.paste(rgba,(0,0)); rgba=p
+    W,H=rgba.size
+    arr=np.array(rgba,dtype=np.uint8)
+    N=(H//4)*(W//4)
+    blk=arr.reshape(H//4,4,W//4,4,4).transpose(0,2,1,3,4).reshape(N,16,4)
+    has_alpha=bool(blk[:,:,3].min()<255)
+    if has_alpha:
+        data=np.concatenate([_bc3a(blk[:,:,3]),_bc1(blk[:,:,:3])],axis=1); fcc=b'DXT5'; bsz=16
+    else:
+        data=_bc1(blk[:,:,:3]); fcc=b'DXT1'; bsz=8
+    lin=max(1,(w+3)//4)*max(1,(h+3)//4)*bsz
+    hdr=struct.pack('<4sI',b'DDS ',124)
+    hdr+=struct.pack('<5I',_DDSD_CAPS|_DDSD_HEIGHT|_DDSD_WIDTH|_DDSD_PIXELFORMAT|_DDSD_LINEARSIZE,h,w,lin,0)
+    hdr+=struct.pack('<I',1)+b'\x00'*44
+    hdr+=struct.pack('<II4sIIIII',32,_DDPF_FOURCC,fcc,0,0,0,0,0)
+    hdr+=struct.pack('<5I',_DDSCAPS_TEXTURE,0,0,0,0)
+    return hdr+data.tobytes()
 
 # ====================== КОНФИГУРАЦИЯ ======================
 if getattr(sys, 'frozen', False):
@@ -379,39 +456,45 @@ class ImageEditorPro(tk.Toplevel):
 
     def save_image(self):
         target_size = self.presets.get(self.current_preset)
-        
+
         if target_size:
             tw, th = target_size
             final_img = Image.new("RGBA", (tw, th), (0, 0, 0, 0))
-            sw, sh = int(self.original_img.width * self.scale_x), int(self.original_img.height * self.scale_y)
+            sw = int(self.original_img.width  * self.scale_x)
+            sh = int(self.original_img.height * self.scale_y)
             resized = self.original_img.resize((sw, sh), Image.Resampling.LANCZOS)
-            
             paste_x = (tw - sw) // 2 + self.offset_x
             paste_y = (th - sh) // 2 + self.offset_y
-            final_img.paste(resized, (paste_x, paste_y), resized if resized.mode == 'RGBA' else None)
+            final_img.paste(resized, (paste_x, paste_y),
+                            resized if resized.mode == "RGBA" else None)
         else:
-            sw, sh = int(self.original_img.width * self.scale_x), int(self.original_img.height * self.scale_y)
+            sw = int(self.original_img.width  * self.scale_x)
+            sh = int(self.original_img.height * self.scale_y)
             final_img = self.original_img.resize((sw, sh), Image.Resampling.LANCZOS)
 
         dest_dir = os.path.dirname(self.dest_img_path)
         if dest_dir:
             os.makedirs(dest_dir, exist_ok=True)
+
+        # Защита от нулевых размеров при экстремальном зуме
+        if sw <= 0 or sh <= 0:
+            messagebox.showerror("Error", "Image size is zero — adjust zoom and try again.")
+            return
         try:
             ext = os.path.splitext(self.dest_img_path)[1].lower()
-            if ext == '.dds':
-                # DDS: Pillow writes uncompressed DDS. Alpha channel preserved.
-                final_img.save(self.dest_img_path, format="DDS")
-            elif ext == '.tga':
-                # TGA: supports RGBA natively
+            if ext == ".dds":
+                # Встроенный BC1/DXT1 + BC3/DXT5 компрессор — без внешних утилит
+                dds_bytes = compress_to_dds(final_img)
+                with open(self.dest_img_path, "wb") as f:
+                    f.write(dds_bytes)
+            elif ext == ".tga":
                 final_img.save(self.dest_img_path, format="TGA")
-            elif ext in ('.jpg', '.jpeg'):
-                # JPEG does NOT support alpha — must convert RGBA → RGB first,
-                # otherwise Pillow raises "cannot write mode RGBA as JPEG"
+            elif ext in (".jpg", ".jpeg"):
+                # JPEG не поддерживает альфу
                 final_img.convert("RGB").save(self.dest_img_path, format="JPEG", quality=95)
             else:
-                # PNG and others: save as-is (RGBA supported)
                 final_img.save(self.dest_img_path)
-            
+
             self.callback()
             self.destroy()
         except Exception as e:
@@ -424,6 +507,7 @@ class HOI4ModdingStudio:
 
         self.image_cache = {}
         self.tk_cache = {}
+        self._cache_lock = threading.Lock()   # защита image_cache от гонки потоков
         self.current_lang = "RU"
         self.current_theme = "dark"
         self.load_config()
@@ -483,9 +567,18 @@ class HOI4ModdingStudio:
         self.setup_styles()
         self.build_ui()
         self.apply_theme()
+        self._neon_after_id = None
         self.apply_neon_effect()
         self._bind_hotkeys()
         self._auto_detect_mode()
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        """Корректное закрытие: отменяем все after-колбэки перед уничтожением окна."""
+        if self._neon_after_id:
+            self.root.after_cancel(self._neon_after_id)
+        self._animating_wave = False
+        self.root.destroy()
 
     def _bind_hotkeys(self):
         self.root.bind("<F5>",        lambda e: self.scan_files())
@@ -553,7 +646,7 @@ class HOI4ModdingStudio:
             self.neon_line = tk.Frame(self.root_frame, height=3, bg=hex_color)
             self.neon_line.pack(side=tk.TOP, fill=tk.X, before=self.root_frame.winfo_children()[0])
             
-        self.root.after(40, self.apply_neon_effect)
+        self._neon_after_id = self.root.after(40, self.apply_neon_effect)
 
     # ─── УМНЫЙ РЕЖИМ ────────────────────────────────────────────
     def _auto_detect_mode(self):
@@ -905,6 +998,14 @@ class HOI4ModdingStudio:
 
         x = self.root.winfo_pointerx() + 15
         y = self.root.winfo_pointery() + 15
+        # Не даём тултипу выйти за края экрана
+        self.preview_window.update_idletasks()
+        tw = self.preview_window.winfo_reqwidth()
+        th = self.preview_window.winfo_reqheight()
+        sw = self.preview_window.winfo_screenwidth()
+        sh = self.preview_window.winfo_screenheight()
+        if x + tw > sw: x = max(0, sw - tw - 5)
+        if y + th > sh: y = max(0, sh - th - 5)
         self.preview_window.geometry(f"+{x}+{y}")
 
     def cancel_hover_preview(self, event=None):
@@ -1056,8 +1157,11 @@ class HOI4ModdingStudio:
         sel = self.tree.selection()
         if not sel: return
         item = self.tree.item(sel[0])
-        f_path, folder_path = item["values"]
-        if folder_path: 
+        values = item["values"]
+        # Защита: values может быть пустым или иметь меньше 2 элементов
+        if not values or len(values) < 2: return
+        f_path, folder_path = values[0], values[1]
+        if folder_path:
             self.current_nav_path = folder_path
             self.sync_navigation_ui()
             self.populate_treeview()
@@ -1150,19 +1254,20 @@ class HOI4ModdingStudio:
     def get_cached_image(self, path, max_size):
         if not os.path.exists(path): return None, None
         mtime = os.path.getmtime(path)
-        if path in self.image_cache:
-            cached_mtime, img_pil, sz = self.image_cache[path]
-            if cached_mtime == mtime: return img_pil, sz
+        with self._cache_lock:
+            if path in self.image_cache:
+                cached_mtime, img_pil, sz = self.image_cache[path]
+                if cached_mtime == mtime: return img_pil, sz
         try:
             with Image.open(path) as img:
                 img.load()
                 w, h  = img.size
                 thumb = img.copy()
                 thumb.thumbnail(max_size, Image.Resampling.LANCZOS)
-                # Лимит кэша 200 записей
-                if len(self.image_cache) >= 200:
-                    del self.image_cache[next(iter(self.image_cache))]
-                self.image_cache[path] = (mtime, thumb, f"{w}x{h}")
+                with self._cache_lock:
+                    if len(self.image_cache) >= 200:
+                        del self.image_cache[next(iter(self.image_cache))]
+                    self.image_cache[path] = (mtime, thumb, f"{w}x{h}")
                 return thumb, f"{w}x{h}"
         except Exception:
             return None, None
@@ -1200,6 +1305,9 @@ class HOI4ModdingStudio:
                 return
             dest = os.path.join(self.addon_path.get(), self.current_selected_rel_path)
         else:
+            if not self.sub_path.get():
+                messagebox.showerror("Error", l.get("err_dir", "Select sub-mod folder first!"))
+                return
             dest = os.path.join(self.sub_path.get(), self.current_selected_rel_path)
 
         src = filedialog.askopenfilename(filetypes=[("Images", "*.png *.jpg *.jpeg *.dds *.tga")])
@@ -1211,13 +1319,19 @@ class HOI4ModdingStudio:
         editor.grab_set()
 
     def on_editor_success(self):
-        sub_dest = os.path.join(self.sub_path.get(), self.current_selected_rel_path)
+        sub_dest   = os.path.join(self.sub_path.get(), self.current_selected_rel_path)
         addon_dest = os.path.join(self.addon_path.get(), self.current_selected_rel_path) if self.addon_path.get() else ""
-        for path in [sub_dest, addon_dest]:
-            if path and path in self.image_cache:
-                del self.image_cache[path]
+        with self._cache_lock:
+            for path in [sub_dest, addon_dest]:
+                if path and path in self.image_cache:
+                    del self.image_cache[path]
         self.populate_treeview()
-        
+
+        # Диалог показываем ДО запуска анимации — иначе он блокирует Tk
+        # и анимация не играет пока пользователь не нажмёт OK.
+        messagebox.showinfo(LANG[self.current_lang]["success_title"],
+                            LANG[self.current_lang]["success_msg"])
+
         self.load_progress = 0
         self.wave_tick = 0
         self._load_gen += 1
@@ -1225,8 +1339,6 @@ class HOI4ModdingStudio:
         self._animating_wave = True
         self.animate_wave(my_gen)
         threading.Thread(target=self._bg_load, args=(my_gen,), daemon=True).start()
-        
-        messagebox.showinfo(LANG[self.current_lang]["success_title"], LANG[self.current_lang]["success_msg"])
 
 if __name__ == "__main__":
     root = tk.Tk()
