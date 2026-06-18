@@ -1054,17 +1054,12 @@ class HOI4ModdingStudio:
         self.btn_theme.pack(side=tk.RIGHT, padx=(10, 0))
 
         # --- Быстрый переключатель языка ---
-        LANG_FLAGS = {
-            "RU": "🇷🇺", "EN": "🇬🇧", "JA": "🇯🇵", "KO": "🇰🇷",
-            "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "PT": "🇵🇹", "CN": "🇨🇳"
-        }
         self.lang_combo = ttk.Combobox(
             right_group,
-            values=[f"{LANG_FLAGS.get(k, '')} {k}" for k in LANG.keys()],
-            width=8, state="readonly"
+            values=list(LANG.keys()),
+            width=6, state="readonly"
         )
-        # Set current value with flag
-        self.lang_combo.set(f"{LANG_FLAGS.get(self.current_lang, '')} {self.current_lang}")
+        self.lang_combo.set(self.current_lang)
         self.lang_combo.pack(side=tk.RIGHT, padx=10)
         self.lang_combo.bind("<<ComboboxSelected>>", self.change_lang_event)
 
@@ -1316,17 +1311,10 @@ class HOI4ModdingStudio:
         self.populate_treeview()
 
     def change_lang_event(self, event):
-        # Parse "🇷🇺 RU" → "RU"
-        selected = self.lang_combo.get()
-        self.current_lang = selected.split()[-1]
+        self.current_lang = self.lang_combo.get()
         self.save_config()
         self.update_ui_lang()
-        # Sync combobox display value in case of re-render
-        LANG_FLAGS = {
-            "RU": "🇷🇺", "EN": "🇬🇧", "JA": "🇯🇵", "KO": "🇰🇷",
-            "DE": "🇩🇪", "FR": "🇫🇷", "ES": "🇪🇸", "PT": "🇵🇹", "CN": "🇨🇳"
-        }
-        self.lang_combo.set(f"{LANG_FLAGS.get(self.current_lang, '')} {self.current_lang}")
+        self.lang_combo.set(self.current_lang)
 
     def update_ui_lang(self):
         l = LANG.get(self.current_lang, LANG["EN"])
